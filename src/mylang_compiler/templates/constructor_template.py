@@ -7,9 +7,9 @@ def __init__(self, *args, **kwargs):
     # self._v1_instance = self._V1_Impl()
     # .. (v2, v3..)
 
-    # self._version_instances = [..]
+    # object.__setattr__(self, '_version_instances', [..])
 
-    # self._current_state = self._v1_instance
+    object.__setattr__(self, '_current_state', self._version_instances[0])
 
     try:
         self._current_state.__initialize__(*args, **kwargs)

@@ -96,11 +96,28 @@ class StateInfrastructureGenerator:
                 comparators=[ast.Constant(value=version_number)]
             )
 
-            # self._current_state = _v{version_number}_instance
-            assign_expr = ast.Assign(
-                targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_current_state', ctx=ast.Store())],
-                value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_instance_field_name(version_number), ctx=ast.Load())
-            )
+            # object_setattr_(self, "_current_state", _version_instances[int(version_num) - 1])
+            assign_expr = ast.Expr(value=ast.Call(
+                func=ast.Attribute(value=ast.Name(id='object', ctx=ast.Load()), attr='__setattr__', ctx=ast.Load()),
+                args=[
+                    ast.Name(id='self', ctx=ast.Load()),
+                    ast.Constant('_current_state'),
+                    ast.Subscript(
+                        value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_version_instances', ctx=ast.Load()),
+                        slice=ast.BinOp(
+                            left=ast.Call(
+                                func=ast.Name(id='int', ctx=ast.Load()),
+                                args=[ast.Name(id='version_num', ctx=ast.Load())],
+                                keywords=[]
+                            ),
+                            op=ast.Sub(),
+                            right=ast.Constant(value=1)
+                        ),
+                        ctx=ast.Load()
+                    )
+                ],
+                keywords=[]
+            ))
             
             if_stmt = ast.If(test=test_expr, body=[assign_expr], orelse=[])
             

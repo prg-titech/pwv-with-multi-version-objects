@@ -10,5 +10,5 @@ def _switch_to_version(self, version_num):
     if hasattr(self, sync_method_name):
         sync_method = getattr(self, sync_method_name)
         source_instance = self._current_state
-        target_instance = getattr(self, f"_v{version_num}_instance")
+        target_instance = self._version_instances[int(version_num) - 1]
         sync_method(source_instance, target_instance)

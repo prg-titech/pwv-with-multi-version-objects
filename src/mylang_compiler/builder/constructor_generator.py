@@ -27,7 +27,7 @@ class ConstructorGenerator:
         if not self.template_ast: return
 
         # 1. Create nodes to be inserted in the template __init__ method
-        setup_nodes = self._create_setup_nodes()
+        setup_nodes =  self._create_setup_nodes()
 
         # 2. Retrieve information for the __initialize__ method from the symbol table
         class_info = self.symbol_table.lookup_class(self.target_class.name)
@@ -41,7 +41,7 @@ class ConstructorGenerator:
             slow_path_body.append(ast.Pass())
 
         # 4. Replace the body of except block in the template with the generated slow path body
-        try_except_node = self.template_ast.body[0]  # Node: try-except
+        try_except_node = self.template_ast.body[1]  # Node: try-except
         except_handler = try_except_node.handlers[0] # Node: except
         except_handler.body = slow_path_body # except block body replacement
 
@@ -67,36 +67,44 @@ class ConstructorGenerator:
 
     def _create_setup_nodes(self) -> List[ast.AST]:
         setup_nodes = []
-        instance_names = []
 
-        # a. Generate: self._vX_instance = self._VX_Impl()
+        # a. Generate: object.__setattr__(self, '_version_instances', [..])
+        impl_class_calls = []
         for tree in self.version_asts:
             class_node = get_primary_class_def(tree)
             if not class_node: continue
             _, version_num = get_class_version_info(class_node)
             if not version_num: continue
 
-            instance_name = get_instance_field_name(version_num)
             impl_name = get_impl_class_name(version_num)
-            instance_names.append(instance_name)
+            impl_class_calls.append(
+                ast.Call(func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=impl_name, ctx=ast.Load()), args=[], keywords=[])
+            )
 
-            setup_nodes.append(ast.Assign(
-                targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=instance_name, ctx=ast.Store())],
-                value=ast.Call(func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=impl_name, ctx=ast.Load()), args=[], keywords=[])
-            ))
-        
-        # b. Generate: self._version_instances = [...]
-        setup_nodes.append(ast.Assign(
-            targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_version_instances', ctx=ast.Store())],
-            value=ast.List(elts=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=name, ctx=ast.Load()) for name in instance_names], ctx=ast.Load())
-        ))
+        setup_nodes.append(ast.Expr(value=ast.Call(
+            func=ast.Attribute(value=ast.Name(id='object', ctx=ast.Load()), attr='__setattr__', ctx=ast.Load()),
+            args=[
+                ast.Name(id='self', ctx=ast.Load()),
+                ast.Constant('_version_instances'),
+                ast.List(elts=impl_class_calls, ctx=ast.Load())
+            ],
+            keywords=[]
+        )))
 
-        # c. Generate: self._current_state = self._v1_instance
-        if instance_names:
-            setup_nodes.append(ast.Assign(
-                targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_current_state', ctx=ast.Store())],
-                value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=instance_names[0], ctx=ast.Load())
-            ))
-        
+        # b. Generate: object.__setattr__(self, '_current_state', self._version_instances[0])
+        setup_nodes.append(ast.Expr(value=ast.Call(
+                func=ast.Attribute(value=ast.Name(id='object', ctx=ast.Load()), attr='__setattr__', ctx=ast.Load()),
+                args=[
+                    ast.Name(id='self', ctx=ast.Load()),
+                    ast.Constant('_current_state'),
+                    ast.Subscript(
+                        value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_version_instances', ctx=ast.Load()),
+                        slice=ast.Constant(value=0),
+                        ctx=ast.Load()
+                    )
+                ],
+                keywords=[]
+            )))
+
         return setup_nodes
 

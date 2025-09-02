@@ -1,13 +1,12 @@
 # This file is a template for the transpiler to parse and reuse ASTs.
 # It is not executed directly.
-import re
 
 def __setattr__(self, name, value):
     # Handle special attributes that should not be set directly
-    _INTERNAL_INSTANCE_VAR_PATTERN = re.compile(r"^_v\d+_instance$")
-    if name == '_current_state' or name == '_version_instances' or _INTERNAL_INSTANCE_VAR_PATTERN.match(name):
-        object.__setattr__(self, name, value)
-        return
+    # Currently, not be needed, maybe
+    # if name == '_current_state' or name == '_version_instances':
+    #     object.__setattr__(self, name, value)
+    #     return
 
     # 1. Search the attribute in the current version implementation
     if hasattr(self._current_state, name):
