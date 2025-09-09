@@ -1,9 +1,9 @@
 import math
 
-def _sync_from_v1_to_v2(v1_impl, v2_impl):
-    v2_impl.r = math.sqrt(v1_impl.x**2 + v1_impl.y**2)
-    v2_impl.theta = math.atan2(v1_impl.y, v1_impl.x)
+def _sync_from_v1_to_v2(wrapper_obj):
+    wrapper_obj.r = math.sqrt(wrapper_obj.x**2 + wrapper_obj.y**2)
+    wrapper_obj.theta = math.atan2(wrapper_obj.y, wrapper_obj.x)
 
-def _sync_from_v2_to_v1(v2_impl, v1_impl):
-    v1_impl.x = v2_impl.r * math.cos(v2_impl.theta)
-    v1_impl.y = v2_impl.r * math.sin(v2_impl.theta)
+def _sync_from_v2_to_v1(wrapper_obj):
+    wrapper_obj.x = wrapper_obj.r * math.cos(wrapper_obj.theta)
+    wrapper_obj.y = wrapper_obj.r * math.sin(wrapper_obj.theta)
