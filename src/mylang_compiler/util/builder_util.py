@@ -30,7 +30,10 @@ def _create_slow_path_dispatcher(method_name: str, overloads: list[MethodInfo]) 
                     attr=method_name, ctx=ast.Load()
                 ),
                 args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],
-                keywords=[ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))]
+                keywords=[
+                    ast.keyword(arg='_wrapper_self', value=ast.Name(id='self', ctx=ast.Load())),
+                    ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))
+                ]
             ))
         ]
         

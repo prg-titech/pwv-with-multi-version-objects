@@ -9,9 +9,6 @@ from ..symbol_table.symbol_table import SymbolTable
 from ..util.template_util import get_template_string
 from ...util import logger
 
-_SETATTR_TEMPLATE = "setattr_template.py"
-_GETATTR_TEMPLATE = "getattr_template.py"
-
 class UnifiedClassBuilder:
     """
     Orchestrates the transformation of versioned classes' ASTs into a single, unified class AST.
@@ -45,14 +42,10 @@ class UnifiedClassBuilder:
         stub_generator = StubMethodGenerator(self.new_class_ast, self.symbol_table, self.base_name)
         stub_generator.generate()
 
-        # --- 5. Inject __setattr__ and __getattr__ methods from templates ---
-        self._inject_method_from_template(_SETATTR_TEMPLATE, "__setattr__")
-        self._inject_method_from_template(_GETATTR_TEMPLATE, "__getattr__")
-
-        # --- 6. Inject state synchronization components ---
+        # --- 5. Inject state synchronization components ---
         self._inject_sync_components()
 
-        # --- 7. Return the fully constructed class AST ---
+        # --- 6. Return the fully constructed class AST ---
         final_ast = ast.Module(
             body = [
                 ast.Import(names=[ast.alias(name='inspect', asname=None), ast.alias(name='re', asname=None)]),

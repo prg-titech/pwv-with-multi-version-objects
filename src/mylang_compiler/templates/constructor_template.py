@@ -12,7 +12,7 @@ def __init__(self, *args, **kwargs):
     object.__setattr__(self, '_current_state', self._version_instances[0])
 
     try:
-        self._current_state.__initialize__(*args, **kwargs)
+        self._current_state.__initialize__(*args, _wrapper_self=self, **kwargs)
     except (AttributeError, TypeError):
         # if-else chain to dispatch __initialize__ calls
         pass

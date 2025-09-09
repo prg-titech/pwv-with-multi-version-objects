@@ -9,6 +9,6 @@ def _switch_to_version(self, version_num):
     
     if hasattr(self, sync_method_name):
         sync_method = getattr(self, sync_method_name)
-        source_instance = self._current_state
-        target_instance = self._version_instances[int(version_num) - 1]
-        sync_method(source_instance, target_instance)
+        sync_method(self)
+
+    object.__setattr__(self, '_current_state', self._version_instances[int(version_num) - 1])

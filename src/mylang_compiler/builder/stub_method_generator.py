@@ -29,6 +29,10 @@ class StubMethodGenerator:
         Generates a single stub method with a try-except block for
         fast/slow path dispatch.
         """
+        if(method_name == "__initialize__"):
+            return
+
+
         # 1. Create infrastructure of stub method: def method_name(self, *args, **kwargs)
         stub_method = ast.FunctionDef(
             name=method_name,
@@ -47,7 +51,10 @@ class StubMethodGenerator:
                 attr=method_name, ctx=ast.Load()
             ),
             args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],
-            keywords=[ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))]
+            keywords=[
+                ast.keyword(arg='_wrapper_self', value=ast.Name(id='self', ctx=ast.Load())),
+                ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))
+            ]
         ))]
 
         # 3. Create AST for slow path (except block)

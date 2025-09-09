@@ -2,6 +2,7 @@ import ast
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from .my_lang_transformer import MyLangTransformer
@@ -131,7 +132,7 @@ def run_generated_code(main_file: Path, classpath: Path) -> str:
         env['PYTHONPATH'] = str(classpath.resolve())
 
         result = subprocess.run(
-            ['python', str(main_file.resolve())],
+            [sys.executable, str(main_file.resolve())],
             capture_output=True,
             text=True,
             check=True,

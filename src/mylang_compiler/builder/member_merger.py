@@ -2,6 +2,7 @@ import ast
 import copy
 from typing import List, Optional
 
+from .self_rewrite_visitor import SelfRewriteVisitor
 from ..util.ast_util import *
 from ...util import logger
 
@@ -15,6 +16,8 @@ class MemberMerger:
 
     def merge(self):
         """Merge members from versioned classes into their implementation classes."""
+        self_rewriter = SelfRewriteVisitor()
+
         for version_ast in self.version_asts:
             original_class_node = get_primary_class_def(version_ast)
             if not original_class_node:
@@ -33,6 +36,8 @@ class MemberMerger:
                 logger.error_log(f"Could not find implementation class: {impl_class_name}")
                 continue
 
+            impl_class_node.body.clear()
+
             # Copy members from the original class
             for member in original_class_node.body:
                 member_copy = copy.deepcopy(member)
@@ -41,7 +46,9 @@ class MemberMerger:
                 if isinstance(member_copy, ast.FunctionDef) and member_copy.name == '__init__':
                     member_copy.name = '__initialize__'
 
-                impl_class_node.body.append(member_copy)
+                # Rewrite 'self' references in method signatures and bodies
+                transformed_method = self_rewriter.visit(member_copy)
+                impl_class_node.body.append(transformed_method)
 
             # Inject the version number as an attribute
             # e.g., _version_number = 1
