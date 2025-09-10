@@ -68,43 +68,39 @@ class ConstructorGenerator:
     def _create_setup_nodes(self) -> List[ast.AST]:
         setup_nodes = []
 
-        # a. Generate: object.__setattr__(self, '_version_instances', [..])
-        impl_class_calls = []
-        for tree in self.version_asts:
-            class_node = get_primary_class_def(tree)
-            if not class_node: continue
-            _, version_num = get_class_version_info(class_node)
-            if not version_num: continue
+        default_version_ast = self.version_asts[0]
+        default_class_node = get_primary_class_def(default_version_ast)
+        _, default_version_num = get_class_version_info(default_class_node)
+        default_impl_name = get_impl_class_name(default_version_num)
 
-            impl_name = get_impl_class_name(version_num)
-            impl_class_calls.append(
-                ast.Call(func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=impl_name, ctx=ast.Load()), args=[], keywords=[])
-            )
-
+        # a. Generate: object.__setattr__(self, '_version_instances', {'1': self._V1_Impl()})
         setup_nodes.append(ast.Expr(value=ast.Call(
             func=ast.Attribute(value=ast.Name(id='object', ctx=ast.Load()), attr='__setattr__', ctx=ast.Load()),
             args=[
                 ast.Name(id='self', ctx=ast.Load()),
-                ast.Constant('_version_instances'),
-                ast.List(elts=impl_class_calls, ctx=ast.Load())
+                ast.Constant(value='_version_instances'),
+                ast.Dict(
+                    keys=[ast.Constant(value=default_version_num)],
+                    values=[ast.Call(func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=default_impl_name, ctx=ast.Load()), args=[], keywords=[])]
+                )
             ],
             keywords=[]
         )))
 
-        # b. Generate: object.__setattr__(self, '_current_state', self._version_instances[0])
+        # b. Generate: object.__setattr__(self, '_current_state', self._version_instances['1'])
         setup_nodes.append(ast.Expr(value=ast.Call(
-                func=ast.Attribute(value=ast.Name(id='object', ctx=ast.Load()), attr='__setattr__', ctx=ast.Load()),
-                args=[
-                    ast.Name(id='self', ctx=ast.Load()),
-                    ast.Constant('_current_state'),
-                    ast.Subscript(
-                        value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_version_instances', ctx=ast.Load()),
-                        slice=ast.Constant(value=0),
-                        ctx=ast.Load()
-                    )
-                ],
-                keywords=[]
-            )))
+            func=ast.Attribute(value=ast.Name(id='object', ctx=ast.Load()), attr='__setattr__', ctx=ast.Load()),
+            args=[
+                ast.Name(id='self', ctx=ast.Load()),
+                ast.Constant(value='_current_state'),
+                ast.Subscript(
+                    value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_version_instances', ctx=ast.Load()),
+                    slice=ast.Constant(value=default_version_num),
+                    ctx=ast.Load()
+                )
+            ],
+            keywords=[]
+        )))
 
         return setup_nodes
 

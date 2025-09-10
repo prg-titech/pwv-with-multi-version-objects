@@ -2,8 +2,10 @@
 # It is not executed directly.
 def _switch_to_version(self, version_num):
     current_version_num = self._current_state._version_number
-    if current_version_num == version_num:
-        return
+
+    if version_num not in self._version_instances:
+        target_impl_class = getattr(self, f"_V{version_num}_Impl")
+        self._version_instances[version_num] = target_impl_class()
 
     sync_method_name = f"_sync_from_v{current_version_num}_to_v{version_num}"
     
@@ -11,4 +13,4 @@ def _switch_to_version(self, version_num):
         sync_method = getattr(self, sync_method_name)
         sync_method(self)
 
-    object.__setattr__(self, '_current_state', self._version_instances[int(version_num) - 1])
+    object.__setattr__(self, '_current_state', self._version_instances[version_num])
