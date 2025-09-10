@@ -22,31 +22,35 @@ The transpiler orchestrates a full transpile-and-run pipeline, driven by the mai
 
 ## Setup and Running
 
-The project uses `uv` for environment and dependency management.
+This project uses **uv** for dependency management and reproducibility.  
+The environment is defined by `pyproject.toml` and `uv.lock`. Both should be committed to Git.
 
-### Setup Environment
+### First-time setup
 
-First, create and activate a virtual environment in the project root:
 ```bash
-# Create the virtual environment
-uv venv
+# Pin Python version (creates .python-version)
+uv python pin 3.12
 
-# Activate it (macOS/Linux)
+# Install dependencies (creates .venv and uv.lock if missing)
+uv sync
+```
+
+`uv sync` will:
+- Create a virtual environment in .venv
+- Install project dependencies
+- Install the project itself in editable mode (so `src/mylang_compiler` can be imported from anywhere)
+
+### Activating the Environment
+
+```bash
+# macOS/Linux
 source .venv/bin/activate
 
-# Activate it (Windows PowerShell)
-.venv\Scripts\Activate.ps1
-```
+# Windows PowerShell
+.venv\Scripts\activate
 
-### Install the project
-```bash
-python -m pip install -e .
-```
-
-### Install Dependencies
-Install `pytest` for running the automated test suite:
-```bash
-uv pip install pytest
+# deactivate
+deactivate
 ```
 
 ### Manual Execution
