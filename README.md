@@ -38,6 +38,11 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 ```
 
+### Install the project
+```bash
+python -m pip install -e .
+```
+
 ### Install Dependencies
 Install `pytest` for running the automated test suite:
 ```bash
@@ -100,11 +105,6 @@ This project features a fully automated test suite powered by **pytest**.
 
 ### Test Structure
 
--   **Input Files (`test/resources/samples/`)**: Each subdirectory represents a self-contained test case and should include all necessary source files (`*_v1.py`, `*_v2.py`, `main.py`, etc.).
-
--   **Expected Output (`test/resources/expected_output/`)**: This directory mirrors the structure of `samples/`. For each test case, it must contain an `expected.txt` file, which defines the exact console output the transpiled `main.py` should produce.
-
-
 -   **Input Files (`test/resources/samples/`)**: Each subdirectory (e.g., `basic_cases/basic_01/`) represents a self-contained test case and should include all necessary source files.
 
 -   **Expected Output (`test/resources/expected_output/`)**: This directory mirrors the parent structure of `samples/`. The expected runtime output for a given test case is stored in a `.txt` file that shares the same name as the test case directory.
@@ -139,13 +139,12 @@ A brief overview of the key directories and files in this project.
 ├── main.py                          : The main entry point
 ├── pyproject.toml
 ├── src/                             : Contains all the source code for the transpiler library
-│   ├── mylang_compiler/             : The main package for the transpiler
-│   │   ├── run.py                   
-│   │   ├── my_lang_transformer.py
-│   │   ├── builder/                 : A package containing specialized builder classes
-│   │   ├── symbol_table/            : Contains the data structures for the symbol table
-│   │   └── util/
-│   └── util/                        : Contains shared helper modules like the `logger`
+│   └── mylang_compiler/             : The main package for the transpiler
+│       ├── run.py                   
+│       ├── my_lang_transformer.py
+│       ├── builder/                 : A package containing specialized builder classes
+│       ├── symbol_table/            : Contains the data structures for the symbol table
+│       └── util/                    : Contains shared helper modules like the `logger`
 └── tests/                           : Contains all files related to the test suite
     ├── test_transformer.py
     └── resources/                   : Holds all the data required for the tests

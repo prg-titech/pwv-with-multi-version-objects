@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from .self_rewrite_visitor import SelfRewriteVisitor
 from ..util.ast_util import *
-from ...util import logger
+from ..util import logger
 
 class MemberMerger:
     """

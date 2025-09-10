@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import Dict, Tuple
 
-from ..util import logger
+from .util import logger
 
 def create_project_structure(input_dir: Path) -> Dict:
     """

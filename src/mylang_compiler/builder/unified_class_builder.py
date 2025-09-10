@@ -7,7 +7,7 @@ from .constructor_generator import ConstructorGenerator
 from .stub_method_generator import StubMethodGenerator
 from ..symbol_table.symbol_table import SymbolTable
 from ..util.template_util import get_template_string
-from ...util import logger
+from ..util import logger
 
 class UnifiedClassBuilder:
     """

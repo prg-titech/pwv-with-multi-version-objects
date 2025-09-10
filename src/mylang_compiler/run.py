@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .my_lang_transformer import MyLangTransformer
 from .scanner import create_project_structure
-from ..util import logger
+from .util import logger
 
 
 INPUT_BASE_PATH = Path("test/resources/samples")

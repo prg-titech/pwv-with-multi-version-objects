@@ -1,14 +1,12 @@
 import argparse
-import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent 
-sys.path.append(str(PROJECT_ROOT))
+from .util import logger
 
-from src.util import logger
-
-SAMPLES_ROOT = Path("test/resources/samples")
-EXPECTED_ROOT = Path("test/resources/expected_output")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+TEST_ROOT = PROJECT_ROOT / "test"
+SAMPLES_ROOT = TEST_ROOT / "resources" / "samples"
+EXPECTED_ROOT = TEST_ROOT / "resources" / "expected_output"
 
 # File template for the test case
 MAIN_PY_TEMPLATE = """

@@ -1,12 +1,10 @@
-import sys
 from pathlib import Path
 
-from src.mylang_compiler.run import run_for_test
+from mylang_compiler.run import run_for_test
 
-sys.path.append(str(Path(__file__).parent.parent / 'src'))
-
-SAMPLES_ROOT = Path("test/resources/samples")
-EXPECTED_ROOT = Path("test/resources/expected_output")
+TEST_ROOT = Path(__file__).resolve().parent
+SAMPLES_ROOT = TEST_ROOT / "resources" / "samples"
+EXPECTED_ROOT = TEST_ROOT / "resources" / "expected_output"
 
 def test_transpilation_and_execution(input_dir: Path, tmp_path: Path):
     """

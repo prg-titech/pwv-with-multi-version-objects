@@ -4,7 +4,7 @@ from .util import ast_util
 from .symbol_table.symbol_table import SymbolTable
 from .builder.unified_class_builder import UnifiedClassBuilder
 from .symbol_table.symbol_table_builder_visitor import SymbolTableBuilderVisitor
-from ..util import logger
+from .util import logger
 
 class MyLangTransformer:
 

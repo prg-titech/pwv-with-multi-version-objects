@@ -1,7 +1,8 @@
 import pytest
 from pathlib import Path
 
-SAMPLES_ROOT = Path("test/resources/samples")
+TEST_ROOT = Path(__file__).resolve().parent
+SAMPLES_ROOT = TEST_ROOT / "resources" / "samples" 
 
 def pytest_addoption(parser):
     """Adds the --target_dir command-line option to pytest."""

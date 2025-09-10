@@ -5,7 +5,7 @@ from ..symbol_table.symbol_table import SymbolTable
 from ..util.ast_util import *
 from ..util.template_util import get_template_string
 from ..util.builder_util import _create_slow_path_dispatcher
-from ...util import logger
+from ..util import logger
 
 _CONSTRUCTOR_TEMPLATE = "constructor_template.py"
 

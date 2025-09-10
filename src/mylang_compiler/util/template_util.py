@@ -1,5 +1,5 @@
 from pathlib import Path
-from ...util import logger
+from . import logger
 
 _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 

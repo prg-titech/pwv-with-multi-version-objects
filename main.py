@@ -2,10 +2,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from src.mylang_compiler.run import run
-from src.util import logger
-
-sys.path.append(str(Path(__file__).parent / 'src'))
+from mylang_compiler.run import run
+from mylang_compiler.util import logger
 
 def main():
     parser = argparse.ArgumentParser(description="MyLang Transpiler")

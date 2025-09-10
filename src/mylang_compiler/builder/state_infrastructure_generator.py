@@ -3,7 +3,7 @@ from typing import List
 
 from ..util.ast_util import *
 from ..util.template_util import get_template_string
-from ...util import logger
+from ..util import logger
 
 BEHAVIOR_INTERFACE_NAME = '_IVersionBehavior'
 _SWITCH_TO_VERSION_TEMPLATE = "switch_to_version_template.py"
