@@ -21,7 +21,7 @@ def _create_slow_path_dispatcher(method_name: str, overloads: list[MethodInfo]) 
             # self.__switch_to_version(...)
             ast.Expr(value=ast.Call(
                 func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_switch_to_version', ctx=ast.Load()),
-                args=[ast.Constant(value=str(method_info.version))], keywords=[]
+                args=[ast.Constant(value=int(method_info.version))], keywords=[]
             )),
             # return self._vX_instance.method_name(...)
             ast.Return(value=ast.Call(

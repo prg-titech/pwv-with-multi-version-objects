@@ -54,7 +54,7 @@ class MemberMerger:
             # e.g., _version_number = 1
             version_attr_stmt = ast.Assign(
                 targets=[ast.Name(id='_version_number', ctx=ast.Store())],
-                value=ast.Constant(value=str(version_number))
+                value=ast.Constant(value=int(version_number))
             )
             impl_class_node.body.insert(0, version_attr_stmt) 
 

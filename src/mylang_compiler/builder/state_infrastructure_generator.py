@@ -5,7 +5,6 @@ from ..util.ast_util import *
 from ..util.template_util import get_template_string
 from ..util import logger
 
-BEHAVIOR_INTERFACE_NAME = '_IVersionBehavior'
 _SWITCH_TO_VERSION_TEMPLATE = "switch_to_version_template.py"
 class StateInfrastructureGenerator:
     """
@@ -26,26 +25,13 @@ class StateInfrastructureGenerator:
         """
         Generates the state infrastructure for the versioned class.
         """
-        behavior_interface = self._create_behavior_interface()
-        self._create_impl_classes(behavior_interface)
-        self._create_state_fields()
+        self._create_impl_classes()
+        self._create_singleton_instance_list()
         self._create_switch_to_version_method()
 
         return self.target_class
 
-    def _create_behavior_interface(self) -> ast.ClassDef:
-        """Generate the behavior interface."""
-        interface_node = ast.ClassDef(
-            name=BEHAVIOR_INTERFACE_NAME,
-            bases=[ast.Name(id='object', ctx=ast.Load())],
-            keywords=[],
-            body=[ast.Pass()],
-            decorator_list=[]
-        )
-        self.target_class.body.append(interface_node)
-        return interface_node
-
-    def _create_impl_classes(self, behavior_interface: ast.ClassDef):
+    def _create_impl_classes(self):
         """Generate the infrastructure for implementation classes for each version."""
         for cu_ast in self.version_asts:
             original_class_node = get_primary_class_def(cu_ast)
@@ -56,16 +42,34 @@ class StateInfrastructureGenerator:
 
             impl_class = ast.ClassDef(
                 name=get_impl_class_name(version_num_str),
-                bases=[ast.Name(id=behavior_interface.name, ctx=ast.Load())],
+                bases=[ast.Name(id='object', ctx=ast.Load())],
                 keywords=[],
                 body=[],
                 decorator_list=[]
             )
             self.target_class.body.append(impl_class)
 
-    def _create_state_fields(self):
-        """Generate a field to hold the current version state."""
-        pass
+    def _create_singleton_instance_list(self):
+        """
+        Generate the AST for the class attribute _VERSION_INSTANCES_SINGLETON = [_V1_Impl(), _V2_Impl(), ...]
+        """
+        impl_class_calls = []
+        for tree in self.version_asts:
+            class_node = get_primary_class_def(tree)
+            if not class_node: continue
+            _, version_num = get_class_version_info(class_node)
+            if not version_num: continue
+            
+            impl_name = get_impl_class_name(version_num)
+            impl_class_calls.append(
+                ast.Call(func=ast.Name(id=impl_name, ctx=ast.Load()), args=[], keywords=[])
+            )
+        
+        singleton_list_stmt = ast.Assign(
+            targets=[ast.Name(id='_VERSION_INSTANCES_SINGLETON', ctx=ast.Store())],
+            value=ast.List(elts=impl_class_calls, ctx=ast.Load())
+        )
+        self.target_class.body.append(singleton_list_stmt)
 
     def _create_switch_to_version_method(self):
         """Generates the _switch_to_version method."""
