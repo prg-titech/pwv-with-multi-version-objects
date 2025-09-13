@@ -3,6 +3,7 @@ import re
 from typing import Optional, Tuple
 
 VERSIONED_CLASS_PATTERN = re.compile(r"(.+)__(\d+)__$")
+SYNC_FUNC_PATTERN = re.compile(r"_?sync_from_v(\d+)_to_v(\d+)")
 UNVERSIONED_CLASS_TAG = "normal"
 
 SWITCH_TO_VERSION_METHOD_NAME = "_switch_to_version"
@@ -51,4 +52,21 @@ def get_instance_field_name(version_num_str: str) -> str:
     Generates the instance field name.
     """
     return f"_v{version_num_str}_instance"
+
+def get_sync_function_version_info(func_node: ast.FunctionDef) -> Tuple[Optional[int], Optional[int]]:
+    """
+    Take the AST node of a sync function and extract
+    the version number strings of the source (from) and destination (to) from its name
+    
+    e.g.: 'sync_from_v1_to_v2' -> (1, 2)
+
+    Returns:
+        A tuple of (from_version, to_version). Returns (None, None) if the name doesn't match.
+    """
+    match = SYNC_FUNC_PATTERN.match(func_node.name)
+    if match:
+        from_version = int(match.group(1))
+        to_version = int(match.group(2))
+        return from_version, to_version
+    return None, None
 

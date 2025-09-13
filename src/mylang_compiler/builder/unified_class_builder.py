@@ -27,7 +27,8 @@ class UnifiedClassBuilder:
         logger.debug_log(f"Building unified class for: {self.base_name}")
 
         # --- 1. Generate the skeleton of the new unified class AST ---
-        infra_generator = StateInfrastructureGenerator(self.base_name, self.version_asts)
+        self.state_sync_asts = self.state_sync_components[1] if self.state_sync_components else []
+        infra_generator = StateInfrastructureGenerator(self.base_name, self.version_asts, self.state_sync_asts)
         self.new_class_ast = infra_generator.generate()
 
         # --- 2. Merge versioned classes' members into unified class ---
