@@ -16,18 +16,18 @@ class MemberMerger:
 
     def merge(self):
         """Merge members from versioned classes into their implementation classes."""
-        self_rewriter = SelfRewriteVisitor()
 
         for version_ast in self.version_asts:
             original_class_node = get_primary_class_def(version_ast)
             if not original_class_node:
                 continue
 
-            _, version_number = get_class_version_info(original_class_node)
+            class_name, version_number = get_class_version_info(original_class_node)
             if not version_number:
                 continue
 
             has_original_constructor = self._has_user_defined_constructor(original_class_node)
+            self_rewriter = SelfRewriteVisitor(class_name)
 
             # Find the corresponding implementation class (_V1_Impl, etc.)
             impl_class_name = get_impl_class_name(version_number)

@@ -9,5 +9,6 @@ class ClassInfo:
     """Holds information about a single class, including all its members."""
     base_name: str
     is_versioned: bool
+    base_classes: List[str] = field(default_factory=list)
     methods: Dict[str, List[MethodInfo]] = field(default_factory=dict)
     fields: Dict[str, List[FieldInfo]] = field(default_factory=dict)

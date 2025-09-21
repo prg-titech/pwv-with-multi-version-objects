@@ -28,6 +28,7 @@ class SymbolTableBuilderVisitor(ast.NodeVisitor):
         existing_class_info = self.symbol_table.lookup_class(base_name)
         methods_map = existing_class_info.methods if existing_class_info else {}
         fields_map = existing_class_info.fields if existing_class_info else {}
+        base_class_names = existing_class_info.base_classes if existing_class_info else []
         
         for member in node.body:
             # Collect methods
@@ -45,9 +46,9 @@ class SymbolTableBuilderVisitor(ast.NodeVisitor):
                      field_info = self._create_field_info_from_ann_assign(member, version)
                      fields_map.setdefault(member.target.id, []).append(field_info)
 
-            # TODO: Collect constructor (__init__) information here
+        base_class_names = list(set(base_class_names + [base.id for base in node.bases if isinstance(base, ast.Name)]))
 
-        class_info = ClassInfo(base_name, is_versioned, methods_map, fields_map)
+        class_info = ClassInfo(base_name, is_versioned, base_class_names, methods_map, fields_map)
         self.symbol_table.add_class(class_info)
 
         # Continue traversing the class body

@@ -9,8 +9,14 @@ class SelfRewriteVisitor(ast.NodeTransformer):
     - Inserts a new 'self' argument as the second parameter (referring to the wrapper).
     - Updates 'self' references in the method body to point to the new 'self' argument.
     """
-    def __init__(self):
+    def __init__(self, class_name: str):
         self.original_self_name = None
+        self.wrapper_class_name = class_name
+
+    def visit_ClassDef(self, node):
+        self.wrapper_class_name = node.name
+        self.generic_visit(node)
+        return node
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
         if not node.args.args:
@@ -41,5 +47,26 @@ class SelfRewriteVisitor(ast.NodeTransformer):
     def visit_Name(self, node: ast.Name) -> ast.Name:
         if self.original_self_name and node.id == self.original_self_name:
             return ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=node.ctx)
+
+        return node
+    
+    def visit_Call(self, node: ast.Call) -> ast.Call:
+        # Rewrites super() calls
+        if isinstance(node.func, ast.Name) and node.func.id == 'super':
+            if not node.args:
+                # --- Case 1: super() ---
+                # super(WrapperClass, _wrapper_self)
+                node.args = [
+                    ast.Name(id=self.wrapper_class_name, ctx=ast.Load()),
+                    ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
+                ]
+            elif len(node.args) == 2:
+                # --- Case 2: super(A, self) ---
+                # Rewrites the second argument to _wrapper_self
+                second_arg = node.args[1]
+                if second_arg.id == self.original_self_name:
+                    node.args[1] = ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
+
+        self.generic_visit(node)
 
         return node

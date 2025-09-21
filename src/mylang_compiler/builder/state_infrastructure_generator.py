@@ -10,13 +10,14 @@ class StateInfrastructureGenerator:
     """
     Generates the necessary state infrastructure for versioned classes.
     """
-    def __init__(self, base_name: str, version_asts: List[ast.AST], state_sync_function_asts: List[ast.FunctionDef]):
+    def __init__(self, base_name: str, version_asts: List[ast.AST], state_sync_function_asts: List[ast.FunctionDef], base_class_names: List[str]):
         self.base_name = base_name
         self.version_asts = version_asts
         self.state_sync_function_asts = state_sync_function_asts
+        self.base_class_names = base_class_names
         self.target_class = ast.ClassDef(
             name=self.base_name,
-            bases=[],
+            bases=[ast.Name(id=base_class_name, ctx=ast.Load()) for base_class_name in self.base_class_names],
             keywords=[],
             body=[],
             decorator_list=[]
@@ -26,13 +27,13 @@ class StateInfrastructureGenerator:
         """
         Generates the state infrastructure for the versioned class.
         """
-        self._create_impl_classes()
-        self._create_singleton_instance_list()
-        self._create_switch_to_version_method()
+        self._set_impl_classes()
+        self._set_singleton_instance_list()
+        self._set_switch_to_version_method()
 
         return self.target_class
 
-    def _create_impl_classes(self):
+    def _set_impl_classes(self):
         """Generate the infrastructure for implementation classes for each version."""
         for cu_ast in self.version_asts:
             original_class_node = get_primary_class_def(cu_ast)
@@ -50,7 +51,7 @@ class StateInfrastructureGenerator:
             )
             self.target_class.body.append(impl_class)
 
-    def _create_singleton_instance_list(self):
+    def _set_singleton_instance_list(self):
         """
         Generate the AST for the class attribute _VERSION_INSTANCES_SINGLETON = [_V1_Impl(), _V2_Impl(), ...]
         """
@@ -72,7 +73,7 @@ class StateInfrastructureGenerator:
         )
         self.target_class.body.append(singleton_list_stmt)
 
-    def _create_switch_to_version_method(self):
+    def _set_switch_to_version_method(self):
         """Generates the _switch_to_version method."""
 
         template_string = get_template_string(_SWITCH_TO_VERSION_TEMPLATE)

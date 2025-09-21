@@ -34,6 +34,7 @@ class SymbolTable:
         
         for name, info in self._class_table.items():
             lines.append(f"Class: {name} (Versioned: {info.is_versioned})")
+            lines.append(f"Base Classes: {info.base_classes}")
 
             # Output field information
             if not info.fields:
