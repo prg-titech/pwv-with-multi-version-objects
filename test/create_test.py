@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from .util import logger
+from util import logger
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOT = PROJECT_ROOT / "test"
