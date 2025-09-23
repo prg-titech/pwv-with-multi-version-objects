@@ -1,20 +1,28 @@
 import time
-TIMES = 100
+TIMES = {LOOP_COUNT}
 class Num__1__:
     def __init__(self, value):
         self.value = value
     def plus(self, other):
         return Num(self.value + other.value)
+    def less_than_equal(self, other):
+        return self.value <= other.value
+    def equal(self, other):
+        return self.value == other.value
     def minus(self, other):
         return Num(self.value - other.value)
 
 class Num__2__:
     def __init__(self, value):
         self.value = value
+    def plus(self, other):
+        return Num(self.value + other.value)
     def less_than_equal(self, other):
         return self.value <= other.value
     def equal(self, other):
         return self.value == other.value
+    def minus(self, other):
+        return Num(self.value - other.value)
 
 def fib(n):
     if n.less_than_equal(Num(0)):
