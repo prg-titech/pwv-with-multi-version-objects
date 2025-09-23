@@ -20,7 +20,8 @@ def error_log(message: str):
 
 def no_header_log(message: str):
     """Prints a message without a header."""
-    print(message)
+    if DEBUG_MODE:
+        print(message)
 
 def log(message: str):
     """Prints a general message that should always be visible."""
