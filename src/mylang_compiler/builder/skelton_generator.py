@@ -1,80 +1,105 @@
 import ast
+import copy
 from typing import List
 
+from .top_level_method_transformer import TopLevelMethodTransformer
+from ..symbol_table.symbol_table import SymbolTable
 from ..util.ast_util import *
 from ..util.template_util import get_template_string
 from ..util import logger
 
 _SWITCH_TO_VERSION_TEMPLATE = "switch_to_version_template.py"
-class StateInfrastructureGenerator:
+
+class SkeltonGenerator:
     """
-    Generates the necessary state infrastructure for versioned classes.
+    Generates the skelton of unified classes.
     """
-    def __init__(self, base_name: str, version_asts: List[ast.AST], state_sync_function_asts: List[ast.FunctionDef], base_class_names: List[str]):
-        self.base_name = base_name
-        self.version_asts = version_asts
-        self.state_sync_function_asts = state_sync_function_asts
-        self.base_class_names = base_class_names
-        self.target_class = ast.ClassDef(
-            name=self.base_name,
-            bases=[ast.Name(id=base_class_name, ctx=ast.Load()) for base_class_name in self.base_class_names],
-            keywords=[],
-            body=[],
-            decorator_list=[]
-        )
+
+    def __init__(self, class_name: str, symbol_table: SymbolTable, sync_asts: List[ast.FunctionDef]):
+        self.class_name = class_name
+        self.symbol_table = symbol_table
+        self.sync_asts = sync_asts
+        self.target_class = None
 
     def generate(self) -> ast.ClassDef:
-        """
-        Generates the state infrastructure for the versioned class.
-        """
-        self._set_impl_classes()
-        self._set_singleton_instance_list()
-        self._set_switch_to_version_method()
+        class_info = self.symbol_table.lookup_class(self.class_name)
+        if not class_info:
+            logger.error_log(f"Class '{self.class_name}' not found in symbol table.")
+            return None
+        
+        self._create_class_skeletons(class_info)
+
+        self._merge_methods(class_info)
+
+        self._create_singleton_instance_list(class_info)
+
+        self._create_switch_to_version_method()
 
         return self.target_class
 
-    def _set_impl_classes(self):
-        """Generate the infrastructure for implementation classes for each version."""
-        for cu_ast in self.version_asts:
-            original_class_node = get_primary_class_def(cu_ast)
-            if not original_class_node: continue
 
-            _, version_num_str = get_class_version_info(original_class_node)
-            if not version_num_str: continue
-
+    # --- HELPER METHODS ---
+    def _create_class_skeletons(self, class_info):
+        base_nodes = [ast.Name(id=name, ctx=ast.Load()) for name in class_info.base_classes]
+        self.target_class = ast.ClassDef(
+            name=self.class_name, bases=base_nodes,
+            keywords=[], body=[], decorator_list=[]
+        )
+        for version_str in sorted(class_info.get_all_versions()):
             impl_class = ast.ClassDef(
-                name=get_impl_class_name(version_num_str),
+                name=get_impl_class_name(version_str),
                 bases=[ast.Name(id='object', ctx=ast.Load())],
-                keywords=[],
-                body=[],
-                decorator_list=[]
+                keywords=[], body=[], decorator_list=[]
             )
             self.target_class.body.append(impl_class)
 
-    def _set_singleton_instance_list(self):
-        """
-        Generate the AST for the class attribute _VERSION_INSTANCES_SINGLETON = [_V1_Impl(), _V2_Impl(), ...]
-        """
+    def _merge_methods(self, class_info):
+        top_level_transformer = TopLevelMethodTransformer()
+
+        for version_str in class_info.get_all_versions():
+            impl_class_name = get_impl_class_name(version_str)
+            target_impl_class = next((n for n in self.target_class.body if isinstance(n, ast.ClassDef) and n.name == impl_class_name), None)
+            if not target_impl_class: continue
+
+            # 1. Merge methods from the versioned class into the impl class
+            for method_info in class_info.get_methods_for_version(version_str):
+                if method_info.ast_node:
+                    member_copy = copy.deepcopy(method_info.ast_node)
+                    
+                    transformed_method = top_level_transformer.visit(member_copy)
+                    target_impl_class.body.append(transformed_method)
+
+            # 2. Inject _version_number attribute
+            version_attr_stmt = ast.Assign(
+                targets=[ast.Name(id='_version_number', ctx=ast.Store())],
+                value=ast.Constant(value=int(version_str))
+            )
+            target_impl_class.body.insert(0, version_attr_stmt) 
+
+            # 3. Inject default constructor
+            default_ctor = ast.FunctionDef(
+                name='__init__',
+                args=ast.arguments(posonlyargs=[], args=[ast.arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[]),
+                body=[ast.Pass()],
+                decorator_list=[]
+            )
+            target_impl_class.body.append(default_ctor)
+
+    def _create_singleton_instance_list(self, class_info):
         impl_class_calls = []
-        for tree in self.version_asts:
-            class_node = get_primary_class_def(tree)
-            if not class_node: continue
-            _, version_num = get_class_version_info(class_node)
-            if not version_num: continue
-            
-            impl_name = get_impl_class_name(version_num)
+        for version_str in sorted(class_info.get_all_versions()):
+            impl_name = get_impl_class_name(version_str)
             impl_class_calls.append(
                 ast.Call(func=ast.Name(id=impl_name, ctx=ast.Load()), args=[], keywords=[])
             )
-        
+
         singleton_list_stmt = ast.Assign(
             targets=[ast.Name(id='_VERSION_INSTANCES_SINGLETON', ctx=ast.Store())],
             value=ast.List(elts=impl_class_calls, ctx=ast.Load())
         )
         self.target_class.body.append(singleton_list_stmt)
 
-    def _set_switch_to_version_method(self):
-        """Generates the _switch_to_version method."""
+    def _create_switch_to_version_method(self):
 
         template_string = get_template_string(_SWITCH_TO_VERSION_TEMPLATE)
         if not template_string:
@@ -101,7 +126,7 @@ class StateInfrastructureGenerator:
         """Generates a nested if-else chain to call sync functions."""
         # Create a dictionary with from_ver as key and a list of (to_ver, func_name) tuples as values
         sync_map: dict[str, list[tuple[int, int]]] = {}
-        for func_node in self.state_sync_function_asts:
+        for func_node in self.sync_asts:
             from_ver, to_ver = get_sync_function_version_info(func_node)
             if from_ver and to_ver:
                 sync_map.setdefault(from_ver, []).append((to_ver, func_node.name))

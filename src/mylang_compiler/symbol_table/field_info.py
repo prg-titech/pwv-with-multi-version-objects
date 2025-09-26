@@ -1,3 +1,4 @@
+import ast
 from dataclasses import dataclass
 
 @dataclass
@@ -6,3 +7,4 @@ class FieldInfo:
     name: str
     type: str
     version: str # e.g., "v1", "v2", or "normal"
+    initial_value: ast.AST | None = None

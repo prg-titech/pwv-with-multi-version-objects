@@ -1,5 +1,4 @@
 import ast
-from typing import List
 
 from ..symbol_table.symbol_table import SymbolTable
 from ..util.ast_util import *
@@ -13,10 +12,10 @@ class ConstructorGenerator:
     """
     Generates the public constructors for the unified class.
     """
-    def __init__(self, target_class: ast.ClassDef, version_asts: List[ast.AST], symbol_table: SymbolTable):
+    def __init__(self, target_class: ast.ClassDef, symbol_table: SymbolTable, class_name: str):
         self.target_class = target_class
-        self.version_asts = version_asts
         self.symbol_table = symbol_table
+        self.class_name = class_name
         self.template_ast = self._load_template_ast()
 
     def generate(self):
@@ -24,7 +23,7 @@ class ConstructorGenerator:
         if not self.template_ast: return
 
         # 1. Retrieve information for the __initialize__ method from the symbol table
-        class_info = self.symbol_table.lookup_class(self.target_class.name)
+        class_info = self.symbol_table.lookup_class(self.class_name)
         initialize_overloads = class_info.methods.get('__initialize__', [])
 
         # 2. Create a slow path dispatcher (if-elif chain)

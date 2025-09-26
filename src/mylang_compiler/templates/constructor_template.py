@@ -1,7 +1,5 @@
 # This file is a template for the transpiler to parse and reuse ASTs.
 # It is not executed directly.
-import inspect
-
 def __init__(self, *args, **kwargs):
     
     self._current_state = self._VERSION_INSTANCES_SINGLETON[0]

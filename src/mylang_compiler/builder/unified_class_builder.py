@@ -1,21 +1,18 @@
 import ast
-from typing import List
 
-from .state_infrastructure_generator import StateInfrastructureGenerator
-from .member_merger import MemberMerger
+from .skelton_generator import SkeltonGenerator
 from .constructor_generator import ConstructorGenerator
 from .stub_method_generator import StubMethodGenerator
+from .class_attribute_generator import ClassAttributeGenerator
 from ..symbol_table.symbol_table import SymbolTable
-from ..util.template_util import get_template_string
 from ..util import logger
 
 class UnifiedClassBuilder:
     """
     Orchestrates the transformation of versioned classes' ASTs into a single, unified class AST.
     """
-    def __init__(self, base_name: str, version_asts: List[ast.AST], state_sync_components: tuple, symbol_table: SymbolTable):
-        self.base_name = base_name
-        self.version_asts = version_asts
+    def __init__(self, class_name: str, state_sync_components: tuple, symbol_table: SymbolTable):
+        self.class_name = class_name
         self.state_sync_components = state_sync_components
         self.symbol_table = symbol_table
         self.new_class_ast: ast.ClassDef = None
@@ -24,60 +21,33 @@ class UnifiedClassBuilder:
         """
         Executes the full build process to generate the unified class AST.
         """
-        logger.debug_log(f"Building unified class for: {self.base_name}")
+        logger.debug_log(f"Building unified class for: {self.class_name}")
 
-        # --- 1. Generate the skeleton of the new unified class AST ---
-        state_sync_asts = self.state_sync_components[1] if self.state_sync_components else []
-        base_class_names = self.symbol_table.lookup_class(self.base_name).base_classes
-        infra_generator = StateInfrastructureGenerator(self.base_name, self.version_asts, state_sync_asts, base_class_names)
-        self.new_class_ast = infra_generator.generate()
+        # --- Generate unified class skeleton ---
+        sync_asts = self.state_sync_components[1] if self.state_sync_components else []
+        skeleton_builder = SkeltonGenerator(self.class_name, self.symbol_table, sync_asts)
+        new_class_ast = skeleton_builder.generate()
 
-        # --- 2. Merge versioned classes' members into unified class ---
-        member_merger = MemberMerger(self.new_class_ast, self.version_asts)
-        member_merger.merge()
+        # --- Inject class attributes ---
+        attr_generator = ClassAttributeGenerator(new_class_ast, self.symbol_table, self.class_name)
+        attr_generator.generate()
 
-        # --- 3. Generate constructor ---
-        constructor_generator = ConstructorGenerator(self.new_class_ast, self.version_asts, self.symbol_table)
+        # --- Generate constructor ---
+        constructor_generator = ConstructorGenerator(new_class_ast, self.symbol_table, self.class_name)
         constructor_generator.generate()
 
-        # --- 4. Generate stub methods ---
-        stub_generator = StubMethodGenerator(self.new_class_ast, self.symbol_table, self.base_name)
+        # --- Generate stub methods ---
+        stub_generator = StubMethodGenerator(new_class_ast, self.symbol_table, self.class_name)
         stub_generator.generate()
 
-        # --- 5. Inject state synchronization components ---
-        self._inject_sync_components()
+        # --- Inject state synchronization components ---
+        self._inject_sync_components(new_class_ast)
 
-        # --- 6. Return the fully constructed class AST ---
-        final_ast = ast.Module(
-            body = [
-                ast.Import(names=[ast.alias(name='inspect', asname=None), ast.alias(name='re', asname=None)]),
-                self.new_class_ast
-            ],
-            type_ignores=[]
-        )
-
+        # --- Return the fully constructed class AST ---
+        final_ast = ast.Module(body=[new_class_ast], type_ignores=[])
         return final_ast
-    
-    def _inject_method_from_template(self, template_filename: str, method_name: str):
-        """
-        Injects a specific method definition from a template file into the class AST.
-        """
-        logger.debug_log(f"Injecting {method_name} method from template.")
 
-        template_string = get_template_string(template_filename)
-        if not template_string:
-            logger.error_log(f"Failed to load template: {template_filename}")
-            return
-        template_ast = ast.parse(template_string)
-
-        method_node = next((n for n in ast.walk(template_ast) if isinstance(n, ast.FunctionDef) and n.name == method_name), None)
-
-        if method_node:
-            self.new_class_ast.body.append(method_node)
-        else:
-            logger.error_log(f"{method_name} not found in template file: {template_filename}")
-
-    def _inject_sync_components(self):
+    def _inject_sync_components(self, new_class_ast: ast.ClassDef):
         """
         Injects functions and necessary modules from the sync module
         into the unified class as static methods.
@@ -85,9 +55,9 @@ class UnifiedClassBuilder:
         if not self.state_sync_components:
             return
 
-        sync_imports, sync_functions = self.state_sync_components
-        logger.debug_log(f"Injecting {len(sync_functions)} sync functions for {self.base_name}")
+        _, sync_functions = self.state_sync_components
+        logger.debug_log(f"Injecting {len(sync_functions)} sync functions for {self.class_name}")
 
         for func_node in sync_functions:
             func_node.decorator_list.append(ast.Name(id='staticmethod', ctx=ast.Load()))
-            self.new_class_ast.body.append(func_node)
+            new_class_ast.body.append(func_node)

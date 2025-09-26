@@ -3,11 +3,11 @@ import ast
 from .util import ast_util
 from .symbol_table.symbol_table import SymbolTable
 from .builder.unified_class_builder import UnifiedClassBuilder
-from .symbol_table.symbol_table_builder_visitor import SymbolTableBuilderVisitor
+from .symbol_table.symbol_table_builder import SymbolTableBuilder
 from .util import logger
 
 class MyLangTransformer:
-
+    """Takes the MyLang AST of **a single file** as input and returns the compiled AST."""
     def __init__(self, sync_functions_dict = {}):
         self.sync_functions_dict = sync_functions_dict
 
@@ -16,39 +16,39 @@ class MyLangTransformer:
 
         # --- Pass 1: Construct Symbol Table ---
         symbol_table = SymbolTable()
-        analysis_visitor = SymbolTableBuilderVisitor(symbol_table)
+        analysis_visitor = SymbolTableBuilder(symbol_table)
         analysis_visitor.visit(source_ast)
         logger.no_header_log(symbol_table.get_representation())
 
         # --- Pass 2: Group versioned clases ---
-        versioned_classes_by_base_name: dict[str, list[ast.ClassDef]] = {}
+        versioned_classes_by_name: dict[str, list[ast.ClassDef]] = {}
         for class_node in ast_util.get_all_class_defs(source_ast):
-            base_name, _ = ast_util.get_class_version_info(class_node)
-            if base_name:
-                versioned_classes_by_base_name.setdefault(base_name, []).append(class_node)
-        if not versioned_classes_by_base_name:
+            class_name, _ = ast_util.get_class_version_info(class_node)
+            if class_name:
+                versioned_classes_by_name.setdefault(class_name, []).append(class_node)
+        if not versioned_classes_by_name:
             return source_ast
         
         # --- Pass 3: Generate unified class AST from each versioned class group ---
         unified_classes: dict[str, ast.ClassDef] = {}
-        for base_name, ast_list in versioned_classes_by_base_name.items():
-            state_sync_components = self.sync_functions_dict.get(base_name, [])
-            builder = UnifiedClassBuilder(base_name, ast_list, state_sync_components, symbol_table)
+        for class_name, _ in versioned_classes_by_name.items():
+            state_sync_components = self.sync_functions_dict.get(class_name, [])
+            builder = UnifiedClassBuilder(class_name, state_sync_components, symbol_table)
             unified_class_ast = builder.build()
-            unified_classes[base_name] = unified_class_ast
+            unified_classes[class_name] = unified_class_ast
         
         # --- Pass 4: Reconstruct the original AST with unified classes ---
         new_body = []
-        processed_base_names = set()
+        processed_class_names = set()
         for node in source_ast.body:
             if isinstance(node, ast.ClassDef):
-                base_name, _ = ast_util.get_class_version_info(node)
-                if base_name:
-                    if base_name not in processed_base_names:
-                        new_body.append(unified_classes[base_name])
-                        processed_base_names.add(base_name)
+                class_name, _ = ast_util.get_class_version_info(node)
+                if class_name:
+                    if class_name not in processed_class_names:
+                        new_body.append(unified_classes[class_name])
+                        processed_class_names.add(class_name)
 
-                        sync_imports , _ = self.sync_functions_dict.get(base_name, ([], []))
+                        sync_imports , _ = self.sync_functions_dict.get(class_name, ([], []))
                         for import_node in sync_imports:
                             new_body.insert(0, import_node)
                 else:

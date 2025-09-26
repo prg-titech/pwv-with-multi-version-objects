@@ -1,3 +1,4 @@
+import ast
 from dataclasses import dataclass, field
 from typing import List
 
@@ -14,3 +15,4 @@ class MethodInfo:
     return_type: str
     version: str
     parameters: List[ParameterInfo] = field(default_factory=list)
+    ast_node: ast.FunctionDef | None = None
