@@ -34,6 +34,8 @@ You can control the benchmark's precision and duration using command-line option
 
 - `--repeat <count>`: Sets the number of times the entire script execution is measured to get a stable average. Defaults to `5`.
 
+- `--format <mode>`: Specify the format for outputting the results. (e.g. `cli`, `graph`)
+
 ## How to Create a Benchmark Target
 
 Adding a new benchmark is simple. It requires creating a specific directory structure and a pair of "template" programs.

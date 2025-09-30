@@ -41,7 +41,7 @@ def execute_and_measure(target_name: str, result_dir: Path, config: BenchmarkCon
         "name": str,
         "transpiled_time": float,
         "vanilla_time": float,
-        "overhead_percent": str
+        "performance_factor": float
     }
     """
     transpiled_main = result_dir / "transpiled" / "main.py"
@@ -50,13 +50,13 @@ def execute_and_measure(target_name: str, result_dir: Path, config: BenchmarkCon
     transpiled_time = _time_execution(transpiled_main, config.repeat_count)
     vanilla_time = _time_execution(vanilla_main, config.repeat_count)
     
-    overhead = 0.0
+    performance_factor = 0.0
     if transpiled_time > 0 and vanilla_time > 0:
-        overhead = (transpiled_time / vanilla_time - 1) * 100
+        performance_factor = transpiled_time / vanilla_time
 
     return {
         "name": target_name,
         "transpiled_time": transpiled_time,
         "vanilla_time": vanilla_time,
-        "overhead_percent": f"{overhead:.2f}"
+        "performance_factor": performance_factor
     }
