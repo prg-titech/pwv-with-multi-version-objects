@@ -66,24 +66,65 @@ class SymbolTableBuilder(ast.NodeVisitor):
     # --- HELPER METHODS ---
     def _create_method_info(self, method_node: ast.FunctionDef, version: str) -> MethodInfo:
         parameters = []
-        # Calculate the number of default arguments for the method
-        num_defaults = len(method_node.args.defaults)
-        num_params = len(method_node.args.args)
+        args = method_node.args
+        
+        # Calculate the starting index of default values
+        pos_and_kw_args = args.posonlyargs + args.args
+        defaults_start_index = len(pos_and_kw_args) - len(args.defaults)
 
-        for i, arg in enumerate(method_node.args.args):
-            if arg.arg == 'self':
-                continue
-
-            # Check if the parameter has a default value
-            has_default = (i >= num_params - num_defaults)
-
-            param_info = ParameterInfo(
+        # --- 1. Collect positional-only parameters (/) ---
+        for i, arg in enumerate(args.posonlyargs):
+            parameters.append(ParameterInfo(
                 name=arg.arg,
                 type=ast.unparse(arg.annotation) if arg.annotation else "any",
-                has_default_value=has_default
-            )
-            parameters.append(param_info)
+                has_default_value=(i >= defaults_start_index),
+                kind='POSITIONAL_ONLY'
+            ))
 
+        # --- 2. Collect regular parameters ---
+        for i, arg in enumerate(args.args):
+            # Ignore 'self'
+            if i == 0:
+                continue
+            
+            combined_index = len(args.posonlyargs) + i
+            parameters.append(ParameterInfo(
+                name=arg.arg,
+                type=ast.unparse(arg.annotation) if arg.annotation else "any",
+                has_default_value=(combined_index >= defaults_start_index),
+                kind='POSITIONAL_OR_KEYWORD'
+            ))
+            
+        # --- 3. Collect variable-length positional parameters (*args) ---
+        if args.vararg:
+            arg = args.vararg
+            parameters.append(ParameterInfo(
+                name=arg.arg,
+                type=ast.unparse(arg.annotation) if arg.annotation else "any",
+                has_default_value=False,
+                kind='VAR_POSITIONAL'
+            ))
+
+        # --- 4. Collect keyword-only parameters (*) ---
+        for i, arg in enumerate(args.kwonlyargs):
+            has_default = args.kw_defaults[i] is not None
+            parameters.append(ParameterInfo(
+                name=arg.arg,
+                type=ast.unparse(arg.annotation) if arg.annotation else "any",
+                has_default_value=has_default,
+                kind='KEYWORD_ONLY'
+            ))
+
+        # --- 5. Collect variable-length keyword arguments (**kwargs) ---
+        if args.kwarg:
+            arg = args.kwarg
+            parameters.append(ParameterInfo(
+                name=arg.arg,
+                type=ast.unparse(arg.annotation) if arg.annotation else "any",
+                has_default_value=False,
+                kind='VAR_KEYWORD'
+            ))
+        
         return MethodInfo(
             name=method_node.name,
             return_type=ast.unparse(method_node.returns) if method_node.returns else "any",

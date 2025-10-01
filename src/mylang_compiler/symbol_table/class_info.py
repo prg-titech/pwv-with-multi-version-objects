@@ -16,7 +16,9 @@ class ClassInfo:
     inner_classes: Dict[str, List[ast.ClassDef]] = field(default_factory=dict)
 
     def get_all_versions(self) -> Set[str]:
-        """Get set of all versions of this class."""
+        """
+        Get set of all versions of this class.
+        """
         versions = set()
         for overloads in self.methods.values():
             for method_info in overloads:
@@ -38,4 +40,19 @@ class ClassInfo:
                 if method_info.version == version_str:
                     version_methods.append(method_info)
         return version_methods
-    
+
+    def has_consistent_signature(self, method_name: str) -> bool:
+        """
+        Check if all versions of the specified method have a consistent signature.
+        """
+        overloads = self.methods.get(method_name)
+        if not overloads or len(overloads) <= 1:
+            return True
+
+        first_signature = overloads[0].parameters
+        for other_info in overloads[1:]:
+            if other_info.parameters != first_signature:
+                return False
+        
+        return True
+        
