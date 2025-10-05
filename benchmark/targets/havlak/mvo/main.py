@@ -1,3 +1,7 @@
+import time
+
+TIMES = {LOOP_COUNT}
+
 # Adapted based on SOM benchmark.
 # Copyright 2011 Google Inc.
 #
@@ -14,7 +18,6 @@
 #         limitations under the License.
 from enum import Enum
 
-import time
 import sys
 
 from identity_dictionary import IdentityDictionary
@@ -22,11 +25,8 @@ from identity_set import IdentitySet
 from set import Set
 from vector import Vector
 
-
-TIMES = {LOOP_COUNT} 
-
 # Havlak needs more stack space in CPython
-sys.setrecursionlimit(3000)
+sys.setrecursionlimit(1500)
 
 class _BasicBlock__1__:
     def __init__(self, name):
@@ -46,36 +46,8 @@ class _BasicBlock__1__:
     def custom_hash(self):
         return self._name
 
-class _BasicBlock__2__:
-    def __init__(self, name):
-        self._name = name
-        self.in_edges = Vector(2)
-        self.out_edges = Vector(2)
-
-    def get_num_pred(self):
-        return self.in_edges.size()
-
-    def add_out_edge(self, to):
-        self.out_edges.append(to)
-
-    def add_in_edge(self, from_):
-        self.in_edges.append(from_)
-
-    def custom_hash(self):
-        return self._name
-
 
 class _BasicBlockEdge__1__:
-    def __init__(self, cfg, from_name, to_name):
-        self._from = cfg.create_node(from_name)
-        self._to = cfg.create_node(to_name)
-
-        self._from.add_out_edge(self._to)
-        self._to.add_in_edge(self._from)
-
-        cfg.add_edge(self)
-
-class _BasicBlockEdge__2__:
     def __init__(self, cfg, from_name, to_name):
         self._from = cfg.create_node(from_name)
         self._to = cfg.create_node(to_name)
@@ -109,30 +81,8 @@ class _ControlFlowGraph__1__:
     def num_nodes(self):
         return self.basic_blocks.size()
 
-class _ControlFlowGraph__2__:
-    def __init__(self):
-        self.start_basic_block = None
-        self.basic_blocks = Vector()
-        self._edge_list = Vector()
 
-    def create_node(self, name):
-        if self.basic_blocks.at(name):
-            node = self.basic_blocks.at(name)
-        else:
-            node = _BasicBlock(name)
-            self.basic_blocks.at_put(name, node)
-
-        if self.num_nodes() == 1:
-            self.start_basic_block = node
-        return node
-
-    def add_edge(self, edge):
-        self._edge_list.append(edge)
-
-    def num_nodes(self):
-        return self.basic_blocks.size()
-
-class _LoopStructureGraph:
+class _LoopStructureGraph__1__:
     def __init__(self):
         self._loop_counter = 0
         self._loops = Vector()
@@ -170,6 +120,7 @@ class _LoopStructureGraph:
     def num_loops(self):
         return self._loops.size()
 
+
 class _SimpleLoop__1__:
     def __init__(self, bb, is_reducible):
         self._is_reducible = is_reducible
@@ -201,36 +152,6 @@ class _SimpleLoop__1__:
         if level == 0:
             self.is_root = True
 
-class _SimpleLoop__2__:
-    def __init__(self, bb, is_reducible):
-        self._is_reducible = is_reducible
-        self.parent = None
-        self.is_root = False
-        self.nesting_level = 0
-        self._depth_level = 0
-        self._counter = 0
-        self._basic_blocks = IdentitySet()
-        self.children = IdentitySet()
-
-        if bb is not None:
-            self._basic_blocks.add(bb)
-
-        self._header = bb
-
-    def add_node(self, bb):
-        self._basic_blocks.add(bb)
-
-    def add_child_loop(self, loop):
-        self.children.add(loop)
-
-    def set_parent(self, parent):
-        self.parent = parent
-        self.parent.add_child_loop(self)
-
-    def set_nesting_level(self, level):
-        self.nesting_level = level
-        if level == 0:
-            self.is_root = True
 
 class _UnionFindNode__1__:
     def __init__(self):
@@ -260,117 +181,8 @@ class _UnionFindNode__1__:
     def union(self, basic_block):
         self.parent = basic_block
 
-class _UnionFindNode__2__:
-    def __init__(self):
-        self.parent = None
-        self.bb = None
-        self.dfs_number = 0
-        self.loop = None
-
-    def init_node(self, bb, dfs_number):
-        self.parent = self
-        self.bb = bb
-        self.dfs_number = dfs_number
-        self.loop = None
-
-    def find_set(self):
-        node_list = Vector()
-
-        node = self
-        while node is not node.parent:
-            if node.parent is not node.parent.parent:
-                node_list.append(node)
-            node = node.parent
-
-        node_list.for_each(lambda i: i.union(self.parent))
-        return node
-
-    def union(self, basic_block):
-        self.parent = basic_block
 
 class _LoopTesterApp__1__:
-    def __init__(self):
-        self._cfg = _ControlFlowGraph()
-        self._lsg = _LoopStructureGraph()
-        self._cfg.create_node(0)
-
-    def _build_diamond(self, start):
-        bb0 = start
-        _BasicBlockEdge(self._cfg, bb0, bb0 + 1)
-        _BasicBlockEdge(self._cfg, bb0, bb0 + 2)
-        _BasicBlockEdge(self._cfg, bb0 + 1, bb0 + 3)
-        _BasicBlockEdge(self._cfg, bb0 + 2, bb0 + 3)
-        return bb0 + 3
-
-    def _build_connect(self, start, end_):
-        _BasicBlockEdge(self._cfg, start, end_)
-
-    def _build_straight(self, start, n):
-        for i in range(n):
-            self._build_connect(start + i, start + i + 1)
-        return start + n
-
-    def _build_base_loop(self, from_):
-        header = self._build_straight(from_, 1)
-        diamond1 = self._build_diamond(header)
-        d11 = self._build_straight(diamond1, 1)
-        diamond2 = self._build_diamond(d11)
-        footer = self._build_straight(diamond2, 1)
-        self._build_connect(diamond2, d11)
-        self._build_connect(diamond1, header)
-
-        self._build_connect(footer, from_)
-        footer = self._build_straight(footer, 1)
-        return footer
-
-    def main(
-        self, num_dummy_loops, find_loop_iterations, par_loops, ppar_loops, pppar_loops
-    ):
-        self._construct_simple_cfg()
-        self._add_dummy_loops(num_dummy_loops)
-        self._construct_cfg(par_loops, ppar_loops, pppar_loops)
-
-        self._find_loops(self._lsg)
-        for _ in range(find_loop_iterations):
-            self._find_loops(_LoopStructureGraph())
-
-        self._lsg.calculate_nesting_level()
-        return [self._lsg.num_loops(), self._cfg.num_nodes()]
-
-    def _construct_cfg(self, par_loops, ppar_loops, pppar_loops):
-        n = 2
-
-        for _ in range(par_loops):
-            self._cfg.create_node(n + 1)
-            self._build_connect(2, n + 1)
-            n += 1
-
-            for _ in range(ppar_loops):
-                top = n
-                n = self._build_straight(n, 1)
-                for _ in range(pppar_loops):
-                    n = self._build_base_loop(n)
-                bottom = self._build_straight(n, 1)
-                self._build_connect(n, top)
-                n = bottom
-
-            self._build_connect(n, 1)
-
-    def _add_dummy_loops(self, num_dummy_loops):
-        for _ in range(num_dummy_loops):
-            self._find_loops(self._lsg)
-
-    def _find_loops(self, loop_structure):
-        finder = _HavlakLoopFinder(self._cfg, loop_structure)
-        finder.find_loops()
-
-    def _construct_simple_cfg(self):
-        self._cfg.create_node(0)
-        self._build_base_loop(0)
-        self._cfg.create_node(1)
-        _BasicBlockEdge(self._cfg, 0, 2)
-
-class _LoopTesterApp__2__:
     def __init__(self):
         self._cfg = _ControlFlowGraph()
         self._lsg = _LoopStructureGraph()
@@ -621,38 +433,16 @@ class _HavlakLoopFinder:
 
         self._back_preds.at(w).for_each(each)
 
-def _verify_result(result, inner_iterations):
-        if inner_iterations == 15_000:
-            return result[0] == 46_602 and result[1] == 5213
-        if inner_iterations == 1_500:
-            return result[0] == 6_102 and result[1] == 5213
-        if inner_iterations == 150:
-            return result[0] == 2_052 and result[1] == 5213
-        if inner_iterations == 15:
-            return result[0] == 1_647 and result[1] == 5213
-        if inner_iterations == 1:
-            return result[0] == 1_605 and result[1] == 5213
-
-        print("No verification result for " + str(inner_iterations) + " found")
-        print("Result is: " + str(result[0]) + ", " + str(result[1]))
-        return False
-
 def main():
     start_time = time.perf_counter()
-
-    # コアとなるベンチマーク処理を、TIMES回繰り返す
+    
     for _ in range(TIMES):
-        # 毎回新しいインスタンスを生成して、キャッシュ等の影響を避ける
-        tester = _LoopTesterApp()
-        result = tester.main(TIMES, 50, 10, 10, 5)
-        
-        # (任意) 結果の検証
-        if not _verify_result(result, TIMES):
-            print("Verification failed!", file=sys.stderr)
-
+        inner_iterations = 50
+        _LoopTesterApp().main(inner_iterations, 50, 10, 10, 5)
+    
     end_time = time.perf_counter()
-
     avg_time = (end_time - start_time) / TIMES
+
     print(avg_time)
 
 main()

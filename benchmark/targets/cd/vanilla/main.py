@@ -1,6 +1,8 @@
-# This code is based on the SOM class library.
-#
-# Copyright (c) 2001-2021 see AUTHORS.md file
+import time
+
+TIMES = {LOOP_COUNT}
+
+# Copyright (c) 2001-2021 Stefan Marr
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the 'Software'), to deal
@@ -19,13 +21,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-import time
 from enum import Enum
 from math import sqrt, cos, sin
 
 from vector import Vector
-
-TIMES = {LOOP_COUNT}
 
 MIN_X = 0.0
 MIN_Y = 0.0
@@ -47,7 +46,8 @@ def _compare_numbers(a, b):
     if a > b:
         return 1
 
-    if a == a:
+    # We say that NaN is smaller than non-NaN.
+    if a == a:  # pylint: disable=comparison-with-itself
         return 1
 
     return -1
@@ -776,7 +776,7 @@ class _Simulator:
 
 def main():
     start_time = time.perf_counter()
-
+    
     for _ in range(TIMES):
         num_aircraft = 100
         num_frames = 200
@@ -787,10 +787,11 @@ def main():
         actual_collisions = 0
 
         for i in range(num_frames):
-            times = i / 10.0
-            collisions = detector.handle_new_frame(simulator.simulate(times))
+            r_time = i / 10.0
+            collisions = detector.handle_new_frame(simulator.simulate(r_time))
             actual_collisions += collisions.size()
 
+    
     end_time = time.perf_counter()
     avg_time = (end_time - start_time) / TIMES
 

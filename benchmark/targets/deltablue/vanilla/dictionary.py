@@ -24,7 +24,7 @@ from vector import Vector
 _INITIAL_CAPACITY = 16
 
 
-class Entry__1__:
+class Entry:
     def __init__(self, hash_, key, value, next_):
         self.hash = hash_
         self.key = key
@@ -43,7 +43,7 @@ def _hash(key):
     return hash_ ^ hash_ >> 16
 
 
-class Dictionary__1__:
+class Dictionary:
     def __init__(self, size=_INITIAL_CAPACITY):
         self._buckets = [None] * size
         self._size = 0

@@ -1,3 +1,7 @@
+import time
+
+TIMES = {LOOP_COUNT}
+
 # This code is based on the SOM class library.
 #
 # Copyright (c) 2001-2021 see AUTHORS.md file
@@ -19,34 +23,38 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from constants import INITIAL_SIZE
-from vector import Vector
 
+class Sieve:
+    def benchmark(self):
+        flags = [True] * 5000
+        return self._sieve(flags, 5000)
+    
+    def _sieve(self, flags, size):
+        prime_count = 0
 
-class Set__1__:
-    def __init__(self, size=INITIAL_SIZE):
-        self._items = Vector(size)
+        for i in range(2, size + 1):
+            if flags[i - 1]:
+                prime_count += 1
+                k = i + i
+                while k <= size:
+                    flags[k - 1] = False
+                    k += i
 
-    def size(self):
-        return self._items.size()
+        return prime_count
 
-    def for_each(self, block):
-        self._items.for_each(block)
+    def verify_result(self, result):
+        return result == 669
 
-    def has_some(self, block):
-        self._items.has_some(block)
+def main():
+    start_time = time.perf_counter()
+    
+    for _ in range(TIMES):
+        s = Sieve()
+        result = s.benchmark()
+    
+    end_time = time.perf_counter()
+    avg_time = (end_time - start_time) / TIMES
 
-    def get_one(self, block):
-        self._items.get_one(block)
+    print(avg_time)
 
-    def add(self, obj):
-        if not self.contains(obj):
-            self._items.append(obj)
-
-    def collect(self, block):
-        coll = Vector()
-        self.for_each(lambda e: coll.append(block(e)))
-        return coll
-
-    def contains(self, obj):
-        return self.has_some(lambda it: it == obj)
+main()

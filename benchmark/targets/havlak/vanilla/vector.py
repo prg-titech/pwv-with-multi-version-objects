@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 from constants import INITIAL_SIZE
 
+
 def vector_with(elem):
     v = Vector(1)
     v.append(elem)

@@ -1,3 +1,7 @@
+import time
+
+TIMES = {LOOP_COUNT}
+
 # This code is based on the SOM class library.
 #
 # Copyright (c) 2001-2021 see AUTHORS.md file
@@ -18,35 +22,43 @@
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-from constants import INITIAL_SIZE
-from vector import Vector
+# THE SOFTWARE
+from random import Random
 
 
-class Set__1__:
-    def __init__(self, size=INITIAL_SIZE):
-        self._items = Vector(size)
+class Storage:
+    def __init__(self):
+        self._count = 0
 
-    def size(self):
-        return self._items.size()
+    def benchmark(self):
+        random = Random()
+        self._count = 0
+        self._build_tree_depth(7, random)
+        return self._count
 
-    def for_each(self, block):
-        self._items.for_each(block)
+    def _build_tree_depth(self, depth, random):
+        self._count += 1
+        if depth == 1:
+            return [None] * (random.next() % 10 + 1)
 
-    def has_some(self, block):
-        self._items.has_some(block)
+        arr = [None] * 4
+        for i in range(4):
+            arr[i] = self._build_tree_depth(depth - 1, random)
+        return arr
 
-    def get_one(self, block):
-        self._items.get_one(block)
+    def verify_result(self, result):
+        return result == 5461##　ここ
 
-    def add(self, obj):
-        if not self.contains(obj):
-            self._items.append(obj)
+def main():
+    start_time = time.perf_counter()
+    
+    for _ in range(TIMES):
+        s = Storage()
+        result = s.benchmark()
+    
+    end_time = time.perf_counter()
+    avg_time = (end_time - start_time) / TIMES
 
-    def collect(self, block):
-        coll = Vector()
-        self.for_each(lambda e: coll.append(block(e)))
-        return coll
+    print(avg_time)
 
-    def contains(self, obj):
-        return self.has_some(lambda it: it == obj)
+main()

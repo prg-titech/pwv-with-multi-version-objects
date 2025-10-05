@@ -1,3 +1,7 @@
+import time
+
+TIMES = {LOOP_COUNT}
+
 # This code is based on the SOM class library.
 #
 # Copyright (c) 2001-2021 see AUTHORS.md file
@@ -19,34 +23,47 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from constants import INITIAL_SIZE
-from vector import Vector
 
+class Permute__1__:
+    def __init__(self):
+        self._count = 0
+        self._v = None
 
-class Set__1__:
-    def __init__(self, size=INITIAL_SIZE):
-        self._items = Vector(size)
+    def benchmark(self):
+        self._count = 0
+        self._v = [0] * 6
+        self._permute(6)
 
-    def size(self):
-        return self._items.size()
+        return self._count
 
-    def for_each(self, block):
-        self._items.for_each(block)
+    def _permute(self, n):
+        self._count += 1
+        if n != 0:
+            n1 = n - 1
+            self._permute(n1)
+            for i in range(n1, -1, -1):
+                self._swap(n1, i)
+                self._permute(n1)
+                self._swap(n1, i)
 
-    def has_some(self, block):
-        self._items.has_some(block)
+    def _swap(self, i, j):
+        tmp = self._v[i]
+        self._v[i] = self._v[j]
+        self._v[j] = tmp
 
-    def get_one(self, block):
-        self._items.get_one(block)
+    def verify_result(self, result):
+        return result == 8660
 
-    def add(self, obj):
-        if not self.contains(obj):
-            self._items.append(obj)
+def main():
+    start_time = time.perf_counter()
+    
+    for _ in range(TIMES):
+        p = Permute()
+        p.benchmark()
+    
+    end_time = time.perf_counter()
+    avg_time = (end_time - start_time) / TIMES
 
-    def collect(self, block):
-        coll = Vector()
-        self.for_each(lambda e: coll.append(block(e)))
-        return coll
+    print(avg_time)
 
-    def contains(self, obj):
-        return self.has_some(lambda it: it == obj)
+main()

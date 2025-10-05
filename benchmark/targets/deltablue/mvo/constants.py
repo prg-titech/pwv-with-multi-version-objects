@@ -19,34 +19,4 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from constants import INITIAL_SIZE
-from vector import Vector
-
-
-class Set__1__:
-    def __init__(self, size=INITIAL_SIZE):
-        self._items = Vector(size)
-
-    def size(self):
-        return self._items.size()
-
-    def for_each(self, block):
-        self._items.for_each(block)
-
-    def has_some(self, block):
-        self._items.has_some(block)
-
-    def get_one(self, block):
-        self._items.get_one(block)
-
-    def add(self, obj):
-        if not self.contains(obj):
-            self._items.append(obj)
-
-    def collect(self, block):
-        coll = Vector()
-        self.for_each(lambda e: coll.append(block(e)))
-        return coll
-
-    def contains(self, obj):
-        return self.has_some(lambda it: it == obj)
+INITIAL_SIZE = 10

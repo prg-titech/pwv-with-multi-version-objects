@@ -1,6 +1,7 @@
 import time
 
 TIMES = {LOOP_COUNT}
+
 # This code is based on the SOM class library.
 #
 # Copyright (c) 2001-2021 see AUTHORS.md file
@@ -22,62 +23,61 @@ TIMES = {LOOP_COUNT}
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from random import Random
 
+class Queens__1__:
+    def __init__(self):
+        self._free_maxs = None
+        self._free_rows = None
+        self._free_mins = None
+        self._queen_rows = None
 
-class Ball__1__:
-    def __init__(self, random):
-        self._x = random.next() % 500
-        self._y = random.next() % 500
-        self._x_vel = (random.next() % 300) - 150
-        self._y_vel = (random.next() % 300) - 150
+    def benchmark(self):
+        result = True
+        for _ in range(10):
+            result = result and self.queens()
+        return result
 
-    def bounce(self):
-        x_limit = 500
-        y_limit = 500
-        bounced = False
+    def verify_result(self, result):
+        return result
 
-        self._x += self._x_vel
-        self._y += self._y_vel
+    def queens(self):
+        self._free_rows = [True] * 8
+        self._free_maxs = [True] * 16
+        self._free_mins = [True] * 16
+        self._queen_rows = [-1] * 8
 
-        if self._x > x_limit:
-            self._x = x_limit
-            self._x_vel = -abs(self._x_vel)
-            bounced = True
+        return self.place_queen(0)
 
-        if self._x < 0:
-            self._x = 0
-            self._x_vel = abs(self._x_vel)
-            bounced = True
+    def place_queen(self, c):
+        for r in range(8):
+            if self.get_row_column(r, c):
+                self._queen_rows[r] = c
+                self.set_row_column(r, c, False)
 
-        if self._y > y_limit:
-            self._y = y_limit
-            self._y_vel = -abs(self._y_vel)
-            bounced = True
+                if c == 7:
+                    return True
+                if self.place_queen(c + 1):
+                    return True
 
-        if self._y < 0:
-            self._y = 0
-            self._y_vel = abs(self._y_vel)
-            bounced = True
+                self.set_row_column(r, c, True)
+        return False
 
-        return bounced
+    def get_row_column(self, r, c):
+        return (
+            self._free_rows[r] and self._free_maxs[c + r] and self._free_mins[c - r + 7]
+        )
+
+    def set_row_column(self, r, c, v):
+        self._free_rows[r] = v
+        self._free_maxs[c + r] = v
+        self._free_mins[c - r + 7] = v
 
 def main():
     start_time = time.perf_counter()
-
+    
     for _ in range(TIMES):
-        bounces = 0
-        random_generator = Random()
-        ball_count = 100
-        balls = [None] * ball_count
-
-        for i in range(ball_count):
-            balls[i] = Ball(random_generator)
-
-        for _ in range(50):
-            for ball in balls:
-                if ball.bounce():
-                    bounces += 1
+        q = Queens()
+        result = q.benchmark()
     
     end_time = time.perf_counter()
     avg_time = (end_time - start_time) / TIMES

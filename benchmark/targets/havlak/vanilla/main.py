@@ -1,3 +1,7 @@
+import time
+
+TIMES = {LOOP_COUNT}
+
 # Adapted based on SOM benchmark.
 # Copyright 2011 Google Inc.
 #
@@ -14,16 +18,12 @@
 #         limitations under the License.
 from enum import Enum
 
-import time
 import sys
 
 from identity_dictionary import IdentityDictionary
 from identity_set import IdentitySet
 from set import Set
 from vector import Vector
-
-
-TIMES = {LOOP_COUNT} 
 
 # Havlak needs more stack space in CPython
 sys.setrecursionlimit(1500)
@@ -433,38 +433,16 @@ class _HavlakLoopFinder:
 
         self._back_preds.at(w).for_each(each)
 
-def _verify_result(result, inner_iterations):
-        if inner_iterations == 15_000:
-            return result[0] == 46_602 and result[1] == 5213
-        if inner_iterations == 1_500:
-            return result[0] == 6_102 and result[1] == 5213
-        if inner_iterations == 150:
-            return result[0] == 2_052 and result[1] == 5213
-        if inner_iterations == 15:
-            return result[0] == 1_647 and result[1] == 5213
-        if inner_iterations == 1:
-            return result[0] == 1_605 and result[1] == 5213
-
-        print("No verification result for " + str(inner_iterations) + " found")
-        print("Result is: " + str(result[0]) + ", " + str(result[1]))
-        return False
-
 def main():
     start_time = time.perf_counter()
-
-    # コアとなるベンチマーク処理を、TIMES回繰り返す
+    
     for _ in range(TIMES):
-        # 毎回新しいインスタンスを生成して、キャッシュ等の影響を避ける
-        tester = _LoopTesterApp()
-        result = tester.main(TIMES, 50, 10, 10, 5)
-        
-        # (任意) 結果の検証
-        if not _verify_result(result, TIMES):
-            print("Verification failed!", file=sys.stderr)
-
+        inner_iterations = 50
+        _LoopTesterApp().main(inner_iterations, 50, 10, 10, 5)
+    
     end_time = time.perf_counter()
-
     avg_time = (end_time - start_time) / TIMES
+
     print(avg_time)
 
 main()

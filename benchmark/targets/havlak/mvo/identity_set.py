@@ -25,4 +25,3 @@ from set import Set
 class IdentitySet(Set):
     def contains(self, obj):
         return self.has_some(lambda it: it is obj)
-    

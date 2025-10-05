@@ -1,6 +1,7 @@
 import time
 
 TIMES = {LOOP_COUNT}
+
 # This code is based on the SOM class library.
 #
 # Copyright (c) 2001-2021 see AUTHORS.md file
@@ -22,62 +23,61 @@ TIMES = {LOOP_COUNT}
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from random import Random
+
+class Element__1__:
+    def __init__(self, v):
+        self._val = v
+        self.next = None
+
+    def length(self):
+        if self.next is None:
+            return 1
+        return 1 + self.next.length()
 
 
-class Ball:
-    def __init__(self, random):
-        self._x = random.next() % 500
-        self._y = random.next() % 500
-        self._x_vel = (random.next() % 300) - 150
-        self._y_vel = (random.next() % 300) - 150
+class List__1__:
+    def benchmark(self):
+        result = self.tail(self.make_list(15), self.make_list(10), self.make_list(6))
+        return result.length()
 
-    def bounce(self):
-        x_limit = 500
-        y_limit = 500
-        bounced = False
+    def make_list(self, length):
+        if length == 0:
+            return None
 
-        self._x += self._x_vel
-        self._y += self._y_vel
+        e = Element(length)
+        e.next = self.make_list(length - 1)
+        return e
 
-        if self._x > x_limit:
-            self._x = x_limit
-            self._x_vel = -abs(self._x_vel)
-            bounced = True
+    def is_shorter_than(self, x, y):
+        x_tail = x
+        y_tail = y
 
-        if self._x < 0:
-            self._x = 0
-            self._x_vel = abs(self._x_vel)
-            bounced = True
+        while y_tail is not None:
+            if x_tail is None:
+                return True
 
-        if self._y > y_limit:
-            self._y = y_limit
-            self._y_vel = -abs(self._y_vel)
-            bounced = True
+            x_tail = x_tail.next
+            y_tail = y_tail.next
 
-        if self._y < 0:
-            self._y = 0
-            self._y_vel = abs(self._y_vel)
-            bounced = True
+        return False
 
-        return bounced
+    def tail(self, x, y, z):
+        if self.is_shorter_than(y, x):  # pylint: disable=arguments-out-of-order
+            return self.tail(
+                self.tail(x.next, y, z),
+                self.tail(y.next, z, x),
+                self.tail(z.next, x, y),
+            )
+        return z
 
+    def verify_result(self, result):
+        return result == 10
 def main():
     start_time = time.perf_counter()
-
-    for _ in range(TIMES):    
-        bounces = 0
-        random_generator = Random()
-        ball_count = 100
-        balls = [None] * ball_count
-
-        for i in range(ball_count):
-            balls[i] = Ball(random_generator)
-
-        for _ in range(50):
-            for ball in balls:
-                if ball.bounce():
-                    bounces += 1
+    
+    for _ in range(TIMES):
+        list = List()
+        result = list.benchmark()
     
     end_time = time.perf_counter()
     avg_time = (end_time - start_time) / TIMES
