@@ -41,6 +41,20 @@ def get_class_version_info(class_node: ast.ClassDef) -> Tuple[Optional[str], Opt
         return base_name, version_num_str
     return None, None
 
+def get_class_version_info_from_name(class_name: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Extracts the base name and version number string (e.g., "1", "2") from a class name.
+
+    Returns:
+        A tuple of (base_name, version_number_string). Returns (None, None) if it's not a versioned class.
+    """
+    match = VERSIONED_CLASS_PATTERN.match(class_name)
+    if match:
+        base_name = match.group(1)
+        version_num_str = match.group(2)
+        return base_name, version_num_str
+    return None, None
+
 def get_impl_class_name(version_num_str: str) -> str:
     """
     Generates the implementation class name.

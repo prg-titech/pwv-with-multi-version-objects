@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 
 from .method_info import MethodInfo
 from .field_info import FieldInfo
@@ -8,9 +8,9 @@ from .field_info import FieldInfo
 @dataclass
 class ClassInfo:
     """Holds information about a single class, including all its members."""
-    base_name: str
+    class_name: str
     is_versioned: bool
-    base_classes: List[str] = field(default_factory=list)
+    versioned_bases: Dict[str, List[Tuple[str, str]]] = field(default_factory=dict)
     methods: Dict[str, List[MethodInfo]] = field(default_factory=dict)
     fields: Dict[str, List[FieldInfo]] = field(default_factory=dict)
     inner_classes: Dict[str, List[ast.ClassDef]] = field(default_factory=dict)

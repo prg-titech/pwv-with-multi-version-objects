@@ -40,33 +40,80 @@ class SkeltonGenerator:
 
     # --- HELPER METHODS ---
     def _create_class_skeletons(self, class_info):
-        base_nodes = [ast.Name(id=name, ctx=ast.Load()) for name in class_info.base_classes]
+        # Create a list of unique "parent implementation classes" from ALL versions
+        all_unique_base_impls = {}
+        for parent_list in class_info.versioned_bases.values():
+            for parent_base_name, parent_version in parent_list:
+                if parent_version == UNVERSIONED_CLASS_TAG:
+                    all_unique_base_impls[parent_base_name] = ast.Name(id=parent_base_name, ctx=ast.Load())
+                else:
+                    parent_impl_name = get_impl_class_name(parent_version)
+                    full_name = f"{parent_base_name}.{parent_impl_name}"
+                    all_unique_base_impls[full_name] = ast.Attribute(
+                        value=ast.Name(id=parent_base_name, ctx=ast.Load()),
+                        attr=parent_impl_name,
+                        ctx=ast.Load()
+                    )
+
+        # Create the wrapper class definition
         self.target_class = ast.ClassDef(
-            name=self.class_name, bases=base_nodes,
+            name=self.class_name, 
+            bases=list(all_unique_base_impls.values()),
             keywords=[], body=[], decorator_list=[]
         )
+
         for version_str in sorted(class_info.get_all_versions()):
+            # Create a list of unique "parent implementation classes" for EACH version
+            impl_bases = []
+            parent_list = class_info.versioned_bases.get(version_str, [])
+            for parent_base_name, parent_version in parent_list:
+                if parent_version == UNVERSIONED_CLASS_TAG:
+                    impl_bases.append(ast.Name(id=parent_base_name, ctx=ast.Load()))
+                else:
+                    parent_impl_name = get_impl_class_name(parent_version)
+                    impl_bases.append(ast.Attribute(
+                        value=ast.Name(id=parent_base_name, ctx=ast.Load()),
+                        attr=parent_impl_name,
+                        ctx=ast.Load()
+                    ))
+
+            # Create the implementation class definition
             impl_class = ast.ClassDef(
                 name=get_impl_class_name(version_str),
-                bases=[ast.Name(id='object', ctx=ast.Load())],
+                bases=impl_bases if impl_bases else [ast.Name(id='object', ctx=ast.Load())],
                 keywords=[], body=[], decorator_list=[]
             )
             self.target_class.body.append(impl_class)
 
     def _merge_methods(self, class_info):
-        top_level_transformer = TopLevelMethodTransformer()
 
         for version_str in class_info.get_all_versions():
             impl_class_name = get_impl_class_name(version_str)
             target_impl_class = next((n for n in self.target_class.body if isinstance(n, ast.ClassDef) and n.name == impl_class_name), None)
             if not target_impl_class: continue
 
+            # Create TopLevelMethodTransformer
+            parent_info_list = class_info.versioned_bases.get(version_str, [])
+            parent_context = None
+            if parent_info_list:
+                # for simplicity, only consider the first parent
+                if len(parent_info_list) > 1:
+                    logger.warning_log(f"Multiple inheritance detected in class '{self.class_name}' version '{version_str}'.")
+                    logger.warning_log("Current implementation only considers the first parent for method transformation.")
+                    logger.warning_log("This may lead to inconsistent behavior compared to Python's method resolution order (MRO).")
+                parent_base_name, parent_version = parent_info_list[0]
+                if parent_version == UNVERSIONED_CLASS_TAG:
+                    parent_context = ('normal', parent_base_name)
+                else:
+                    parent_context = ('mvo', (parent_base_name, parent_version))
+            method_transformer = TopLevelMethodTransformer(self.class_name, parent_context)
+
             # 1. Merge methods from the versioned class into the impl class
             for method_info in class_info.get_methods_for_version(version_str):
                 if method_info.ast_node:
                     member_copy = copy.deepcopy(method_info.ast_node)
                     
-                    transformed_method = top_level_transformer.visit(member_copy)
+                    transformed_method = method_transformer.visit(member_copy)
                     target_impl_class.body.append(transformed_method)
 
             # 2. Inject _version_number attribute

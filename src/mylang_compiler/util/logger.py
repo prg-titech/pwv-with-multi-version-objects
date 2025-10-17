@@ -18,6 +18,10 @@ def error_log(message: str):
     """Prints an error message."""
     print(f"[ERROR]   {message}")
 
+def warning_log(message: str):
+    """Prints a warning message."""
+    print(f"[WARNING] {message}")
+
 def no_header_log(message: str):
     """Prints a message without a header."""
     if DEBUG_MODE:

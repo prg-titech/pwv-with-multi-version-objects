@@ -4,7 +4,7 @@ from .symbol_table import SymbolTable
 from .class_info import ClassInfo
 from .method_info import MethodInfo, ParameterInfo
 from .field_info import FieldInfo
-from ..util.ast_util import get_class_version_info, UNVERSIONED_CLASS_TAG
+from ..util.ast_util import get_class_version_info, get_class_version_info_from_name, UNVERSIONED_CLASS_TAG
 
 class SymbolTableBuilder(ast.NodeVisitor):
     """
@@ -14,22 +14,37 @@ class SymbolTableBuilder(ast.NodeVisitor):
         self.symbol_table = symbol_table
 
     def visit_ClassDef(self, node: ast.ClassDef):
-        class_name = node.name
-        base_name, version = get_class_version_info(node)
+        class_name, version = get_class_version_info(node)
 
-        if not base_name:
+        if not class_name:
             # Unversioned class
-            base_name = class_name
+            class_name = node.name
             is_versioned = False
             version = UNVERSIONED_CLASS_TAG
         else:
             is_versioned = True
 
-        existing_class_info = self.symbol_table.lookup_class(base_name)
+        existing_class_info = self.symbol_table.lookup_class(class_name)
         methods_map = existing_class_info.methods if existing_class_info else {}
         fields_map = existing_class_info.fields if existing_class_info else {}
         inner_classes_map = existing_class_info.inner_classes if existing_class_info else {}
-        base_class_names = existing_class_info.base_classes if existing_class_info else []
+        versioned_bases_map = existing_class_info.versioned_bases if existing_class_info else {}
+
+        # Collect base classes, if this class is versioned
+        if is_versioned:
+            bases_for_this_version = []
+            for base_node in node.bases:
+                print(ast.dump(base_node))
+                parent_base_name, parent_version = get_class_version_info_from_name(base_node.id)
+                
+                if not parent_base_name:
+                    parent_base_name = ast.unparse(base_node)
+                    parent_version = UNVERSIONED_CLASS_TAG
+                
+                bases_for_this_version.append((parent_base_name, parent_version))
+            
+            if bases_for_this_version:
+                versioned_bases_map[version] = bases_for_this_version
         
         for member in node.body:
             # Collect methods
@@ -57,10 +72,14 @@ class SymbolTableBuilder(ast.NodeVisitor):
             elif isinstance(member, ast.ClassDef):
                 inner_classes_map.setdefault(member.name, []).append(member)
 
-
-        base_class_names = list(set(base_class_names + [base.id for base in node.bases if isinstance(base, ast.Name)]))
-
-        class_info = ClassInfo(base_name, is_versioned, base_class_names, methods_map, fields_map)
+        class_info = ClassInfo(
+            class_name=class_name,
+            is_versioned=is_versioned,
+            versioned_bases=versioned_bases_map,
+            methods=methods_map,
+            fields=fields_map,
+            inner_classes=inner_classes_map
+        )
         self.symbol_table.add_class(class_info)
 
     # --- HELPER METHODS ---

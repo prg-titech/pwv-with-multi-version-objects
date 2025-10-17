@@ -14,19 +14,19 @@ class SymbolTable:
         """
         Add or Update class information in the table.
         """
-        self._class_table[class_info.base_name] = class_info
+        self._class_table[class_info.class_name] = class_info
 
-    def lookup_class(self, base_name: str) -> Optional[ClassInfo]:
+    def lookup_class(self, class_name: str) -> Optional[ClassInfo]:
         """
-        Search class information by its base name.
+        Search class information by its class name.
         """
-        return self._class_table.get(base_name)
-    
+        return self._class_table.get(class_name)
+
     def get_representation(self) -> str:
         """
         Gets a string representation of the symbol table.
         """
-        lines = ["--- Symbol Table ---"]
+        lines = ["","--- Symbol Table ---"]
         if not self._class_table:
             lines.append("(No classes found)")
             lines.append("--------------------")
@@ -34,11 +34,11 @@ class SymbolTable:
         
         for name, info in self._class_table.items():
             lines.append(f"Class: {name} (Versioned: {info.is_versioned})")
-            lines.append(f"Base Classes: {info.base_classes}")
+            lines.append(f"  - Base Classes: {info.versioned_bases}")
 
             # Output field information
             if not info.fields:
-                lines.append("  (No fields found)")
+                lines.append("  - (No fields found)")
             else:
                 for field_name, field_overloads in info.fields.items():
                     for field_info in field_overloads:
@@ -46,7 +46,7 @@ class SymbolTable:
 
             # Output method information
             if not info.methods:
-                lines.append("  (No methods found)")
+                lines.append("  - (No methods found)")
             else:
                 for method_name, overloads in info.methods.items():
                     for method_info in overloads:
@@ -54,4 +54,5 @@ class SymbolTable:
                         lines.append(f"  - Method: {method_info.name}, Version: {method_info.version}, Params: {param_types}")
         
         lines.append("--------------------")
+        lines.append("")
         return "\n".join(lines)
