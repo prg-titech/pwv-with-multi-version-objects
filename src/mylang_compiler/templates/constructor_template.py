@@ -3,6 +3,7 @@
 def __init__(self, *args, **kwargs):
     
     self._current_state = self._VERSION_INSTANCES_SINGLETON[0]
+    self._version_locking = False
 
     try:
         self._current_state.__initialize__(*args, _wrapper_self=self, **kwargs)

@@ -5,7 +5,10 @@ from .constructor_generator import ConstructorGenerator
 from .stub_method_generator import StubMethodGenerator
 from .class_attribute_generator import ClassAttributeGenerator
 from ..symbol_table.symbol_table import SymbolTable
+from ..util.template_util import load_template_ast
 from ..util import logger
+
+_VERSION_LOCK_TEMPLATE = "version_lock_template.py"
 
 class UnifiedClassBuilder:
     """
@@ -42,6 +45,19 @@ class UnifiedClassBuilder:
 
         # --- Inject state synchronization components ---
         self._inject_sync_components(new_class_ast)
+
+        # --- Inject version lock context manager ---
+        template_ast = load_template_ast(_VERSION_LOCK_TEMPLATE)
+        
+        version_lock_func_ast = None
+        for node in ast.walk(template_ast):
+            if isinstance(node, ast.FunctionDef) and node.name == 'version_lock':
+                version_lock_func_ast = node
+                break
+        if version_lock_func_ast:
+            new_class_ast.body.append(version_lock_func_ast)
+        else:
+            logger.error_log(f"Method 'version_lock' not found in template: {_VERSION_LOCK_TEMPLATE}")
 
         # --- Return the fully constructed class AST ---
         final_ast = ast.Module(body=[new_class_ast], type_ignores=[])

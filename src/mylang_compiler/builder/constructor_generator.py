@@ -2,7 +2,7 @@ import ast
 
 from ..symbol_table.symbol_table import SymbolTable
 from ..util.ast_util import *
-from ..util.template_util import get_template_string
+from ..util.template_util import load_template_ast
 from ..util.builder_util import _create_slow_path_dispatcher
 from ..util import logger
 
@@ -34,7 +34,7 @@ class ConstructorGenerator:
             slow_path_body.append(ast.Pass())
 
         # 3. Replace the body of except block in the template with the generated slow path body
-        try_except_node = self.template_ast.body[1]  # Node: try-except
+        try_except_node = self.template_ast.body[2]  # Node: try-except
         except_handler = try_except_node.handlers[0] # Node: except
         except_handler.body = slow_path_body # except block body replacement
 
@@ -43,11 +43,7 @@ class ConstructorGenerator:
 
     # -- HELPER METHODS --
     def _load_template_ast(self) -> ast.FunctionDef | None:
-        template_source = get_template_string(_CONSTRUCTOR_TEMPLATE)
-        if not template_source:
-            logger.error_log(f"Failed to load constructor template: {_CONSTRUCTOR_TEMPLATE}")
-            return None
-        template_ast = ast.parse(template_source)
+        template_ast = load_template_ast(_CONSTRUCTOR_TEMPLATE)
         for node in ast.walk(template_ast):
             if isinstance(node, ast.FunctionDef) and node.name == '__init__':
                 return node

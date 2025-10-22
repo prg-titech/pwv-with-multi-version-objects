@@ -5,7 +5,7 @@ from typing import List
 from .top_level_method_transformer import TopLevelMethodTransformer
 from ..symbol_table.symbol_table import SymbolTable
 from ..util.ast_util import *
-from ..util.template_util import get_template_string
+from ..util.template_util import load_template_ast
 from ..util import logger
 
 _SWITCH_TO_VERSION_TEMPLATE = "switch_to_version_template.py"
@@ -148,11 +148,7 @@ class SkeltonGenerator:
 
     def _create_switch_to_version_method(self):
 
-        template_string = get_template_string(_SWITCH_TO_VERSION_TEMPLATE)
-        if not template_string:
-            logger.error_log(f"Failed to load switch to version template: {_SWITCH_TO_VERSION_TEMPLATE}")
-            return
-        template_ast = ast.parse(template_string)
+        template_ast = load_template_ast(_SWITCH_TO_VERSION_TEMPLATE)
 
         switch_method_node = template_ast.body[0]
 

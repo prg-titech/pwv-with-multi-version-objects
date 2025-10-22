@@ -4,7 +4,10 @@ from .util import ast_util
 from .symbol_table.symbol_table import SymbolTable
 from .builder.unified_class_builder import UnifiedClassBuilder
 from .symbol_table.symbol_table_builder import SymbolTableBuilder
+from .util.template_util import load_template_ast
 from .util import logger
+
+_REQUIRED_IMPORTS_TEMPLATE = "required_imports_template.py"
 
 class MyLangTransformer:
     """Takes the MyLang AST of **a single file** as input and returns the compiled AST."""
@@ -31,8 +34,13 @@ class MyLangTransformer:
         
         # --- Pass 3: Generate unified class AST from each versioned class group ---
         unified_classes: dict[str, ast.ClassDef] = {}
+        all_sync_imports = []
         for class_name, _ in versioned_classes_by_name.items():
-            state_sync_components = self.sync_functions_dict.get(class_name, [])
+            state_sync_components = self.sync_functions_dict.get(class_name, ([], []))
+            
+            sync_imports, _ = state_sync_components
+            all_sync_imports.extend(sync_imports)
+
             builder = UnifiedClassBuilder(class_name, state_sync_components, symbol_table)
             unified_class_ast = builder.build()
             unified_classes[class_name] = unified_class_ast
@@ -40,6 +48,11 @@ class MyLangTransformer:
         # --- Pass 4: Reconstruct the original AST with unified classes ---
         new_body = []
         processed_class_names = set()
+
+        required_imports = self._load_required_imports()
+        final_required_imports = self._merge_imports(required_imports, all_sync_imports)
+        new_body.extend(final_required_imports)
+
         for node in source_ast.body:
             if isinstance(node, ast.ClassDef):
                 class_name, _ = ast_util.get_class_version_info(node)
@@ -47,10 +60,6 @@ class MyLangTransformer:
                     if class_name not in processed_class_names:
                         new_body.append(unified_classes[class_name])
                         processed_class_names.add(class_name)
-
-                        sync_imports , _ = self.sync_functions_dict.get(class_name, ([], []))
-                        for import_node in sync_imports:
-                            new_body.insert(0, import_node)
                 else:
                     new_body.append(node)
             else:
@@ -58,3 +67,22 @@ class MyLangTransformer:
         source_ast.body = new_body
 
         return source_ast
+    
+    # --- HELPER METHODS ---
+    def _load_required_imports(self) -> list[ast.AST]:
+        """Loads the required import AST nodes from the template."""
+        imports = []
+        template_ast = load_template_ast(_REQUIRED_IMPORTS_TEMPLATE)
+        if template_ast:
+            for node in template_ast.body:
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    imports.append(node)
+        return imports
+
+    def _merge_imports(self, infra_imports: list[ast.AST], sync_imports: list[ast.AST]) -> list[ast.AST]:
+        merged = {}
+        for imp in infra_imports + sync_imports:
+            key = ast.unparse(imp)
+            if key not in merged:
+                merged[key] = imp
+        return list(merged.values())
