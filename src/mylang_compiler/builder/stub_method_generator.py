@@ -4,6 +4,7 @@ import copy
 from ..symbol_table.symbol_table import SymbolTable
 from ..symbol_table.method_info import MethodInfo
 
+from ..util.ast_util import *
 from ..util.builder_util import _create_slow_path_dispatcher
 
 class StubMethodGenerator:
@@ -68,7 +69,7 @@ class StubMethodGenerator:
                 call_keywords.append(ast.keyword(arg=None, value=ast.Name(id=param.name, ctx=ast.Load())))
         
         fast_path_call = ast.Call(
-            func=ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_current_state', ctx=ast.Load()), attr=method_name, ctx=ast.Load()),
+            func=ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(self.base_name), ctx=ast.Load()), attr=method_name, ctx=ast.Load()),
             args=call_args,
             keywords=call_keywords
         )
@@ -89,12 +90,12 @@ class StubMethodGenerator:
         slow_path_body = [
             # a. self._switch_to_version(<next_version_to_try>)
             ast.Expr(value=ast.Call(
-                func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_switch_to_version', ctx=ast.Load()),
+                func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_switch_to_version_method_name(self.base_name), ctx=ast.Load()),
                 args=[ast.Constant(value=next_version_to_try)],
                 keywords=[]
             )),
             
-            # b. return self._current_state.method_name(...)
+            # b. return self._xxx_current_state.method_name(...)
             ast.Return(value=fast_path_call)
         ]
 
@@ -121,7 +122,7 @@ class StubMethodGenerator:
         # 2. Create AST for fast path (try block)
         fast_path_body = [ast.Return(value=ast.Call(
             func=ast.Attribute(
-                value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_current_state', ctx=ast.Load()),
+                value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(self.base_name), ctx=ast.Load()),
                 attr=method_name, ctx=ast.Load()
             ),
             args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],
@@ -132,7 +133,7 @@ class StubMethodGenerator:
         ))]
 
         # 3. Create AST for slow path (except block)
-        slow_path_body = _create_slow_path_dispatcher(method_name, overloads)
+        slow_path_body = _create_slow_path_dispatcher(self.base_name, method_name, overloads)
         
         except_handler = ast.ExceptHandler(
             type=ast.Tuple(elts=[ast.Name(id='AttributeError', ctx=ast.Load()), ast.Name(id='TypeError', ctx=ast.Load())], ctx=ast.Load()),

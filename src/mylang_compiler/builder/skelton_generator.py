@@ -5,6 +5,7 @@ from typing import List
 from .top_level_method_transformer import TopLevelMethodTransformer
 from ..symbol_table.symbol_table import SymbolTable
 from ..util.ast_util import *
+from ..util.template_util import TemplateRenamer
 from ..util.template_util import load_template_ast
 from ..util import logger
 
@@ -29,9 +30,9 @@ class SkeltonGenerator:
         
         self._create_class_skeletons(class_info)
 
-        self._merge_methods(class_info)
+        self._merge_methods_into_impl_class(class_info)
 
-        self._create_singleton_instance_list(class_info)
+        self._create_singleton_instance_list_stmt(class_info)
 
         self._create_switch_to_version_method()
 
@@ -85,7 +86,7 @@ class SkeltonGenerator:
             )
             self.target_class.body.append(impl_class)
 
-    def _merge_methods(self, class_info):
+    def _merge_methods_into_impl_class(self, class_info):
 
         for version_str in class_info.get_all_versions():
             impl_class_name = get_impl_class_name(version_str)
@@ -132,7 +133,7 @@ class SkeltonGenerator:
             )
             target_impl_class.body.append(default_ctor)
 
-    def _create_singleton_instance_list(self, class_info):
+    def _create_singleton_instance_list_stmt(self, class_info):
         impl_class_calls = []
         for version_str in sorted(class_info.get_all_versions()):
             impl_name = get_impl_class_name(version_str)
@@ -141,7 +142,7 @@ class SkeltonGenerator:
             )
 
         singleton_list_stmt = ast.Assign(
-            targets=[ast.Name(id='_VERSION_INSTANCES_SINGLETON', ctx=ast.Store())],
+            targets=[ast.Name(id=get_version_instances_singleton_name(class_info.class_name), ctx=ast.Store())],
             value=ast.List(elts=impl_class_calls, ctx=ast.Load())
         )
         self.target_class.body.append(singleton_list_stmt)
@@ -154,14 +155,7 @@ class SkeltonGenerator:
 
         sync_dispatch_chain = self._create_sync_dispatch_chain()
 
-        for i, node in enumerate(switch_method_node.body):
-            if isinstance(node, ast.Assign) and node.targets[0].id == '_SYNC_CALL_PLACEHOLDER_':
-                if sync_dispatch_chain:
-                    switch_method_node.body[i] = sync_dispatch_chain
-                else:
-                    # If there are no sync functions, remove the placeholder
-                    del switch_method_node.body[i]
-                break
+        TemplateRenamer(self.class_name, sync_dispatch_chain).visit(switch_method_node)
 
         self.target_class.body.append(switch_method_node)
 

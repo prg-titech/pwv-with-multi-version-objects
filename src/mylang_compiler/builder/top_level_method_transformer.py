@@ -11,7 +11,6 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
     - Add _wrapper_self to the method signature.
     - Rebind the original first argument to point to the wrapper
     - Rewrite super() calls
-    - Rewrite super().__init__() calls 
     """
     def __init__(self, class_name: str, parent_context: tuple | None):
         self.class_name = class_name
@@ -85,7 +84,7 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
             if not node.args: # super()
                 if parent_type == 'normal':
                     node.args = [
-                        ast.Name(id=self.wrapper_class_name, ctx=ast.Load()),
+                        ast.Name(id=self.class_name, ctx=ast.Load()),
                         ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
                     ]
                 
@@ -101,20 +100,5 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
                 logger.warning_log(f"super() with two arguments found in top-level method of versioned class '{self.class_name}'.")
                 logger.warning_log("Current implementation only considers the first argument.")
         
-        return self.generic_visit(node)
-    
-    def visit_Attribute(self, node: ast.Attribute) -> ast.Attribute:
-        """
-        Rewrite: super().__init__() -> super().__initialize__()
-        """
-        super_call_node = node.value
-        if (self.is_in_top_level_method and
-            node.attr == '__init__' and
-            isinstance(super_call_node, ast.Call) and
-            isinstance(super_call_node.func, ast.Name) and
-            super_call_node.func.id == 'super'):
-            
-            node.attr = '__initialize__'
-            
         return self.generic_visit(node)
     

@@ -8,6 +8,24 @@ UNVERSIONED_CLASS_TAG = "normal"
 
 SWITCH_TO_VERSION_METHOD_NAME = "_switch_to_version"
 
+def get_version_instances_singleton_name(class_name: str) -> str:
+    """
+    Generates the version instances singleton field name.
+    """
+    return f"_{class_name.upper()}_VERSION_INSTANCES_SINGLETON"
+
+def get_current_state_field_name(class_name: str) -> str:
+    """
+    Generates the current state field name.
+    """
+    return f"_{class_name.lower()}_current_state"
+
+def get_switch_to_version_method_name(class_name: str) -> str:
+    """
+    Generates the switch to version method name.
+    """
+    return f"_{class_name.lower()}_switch_to_version"
+
 def get_primary_class_def(tree: ast.AST) -> Optional[ast.ClassDef]:
     """
     Finds and returns the first class definition node from a given AST.

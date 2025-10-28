@@ -1,8 +1,9 @@
 import ast
 
 from ..symbol_table.method_info import MethodInfo, ParameterInfo
+from ..util.ast_util import *
 
-def _create_slow_path_dispatcher(method_name: str, overloads: list[MethodInfo]) -> list[ast.AST]:
+def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: list[MethodInfo]) -> list[ast.AST]:
     """
     Generate a static if-elif chain for the slow path dispatcher.
     """
@@ -18,15 +19,15 @@ def _create_slow_path_dispatcher(method_name: str, overloads: list[MethodInfo]) 
 
         # b. Generate the body of the if block
         if_body = [
-            # self.__switch_to_version(...)
+            # self._xxx_switch_to_version(...)
             ast.Expr(value=ast.Call(
-                func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_switch_to_version', ctx=ast.Load()),
+                func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_switch_to_version_method_name(class_name), ctx=ast.Load()),
                 args=[ast.Constant(value=int(method_info.version))], keywords=[]
             )),
-            # return self._vX_instance.method_name(...)
+            # return self._xxx_current_state.method_name(...)
             ast.Return(value=ast.Call(
                 func=ast.Attribute(
-                    value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='_current_state', ctx=ast.Load()),
+                    value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(class_name), ctx=ast.Load()),
                     attr=method_name, ctx=ast.Load()
                 ),
                 args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],

@@ -43,3 +43,32 @@ def load_template_ast(template_filename: str) -> ast.Module | None:
     except SyntaxError as e:
         logger.error_log(f"Syntax error parsing template {template_filename}: {e}")
         return None
+    
+class TemplateRenamer(ast.NodeTransformer):
+    def __init__(self, class_name: str, sync_dispatch_chain: ast.If | None = None):
+        self.class_name = class_name
+        self.sync_dispatch_chain = sync_dispatch_chain
+
+    def visit_Attribute(self, node):
+        node = self.generic_visit(node)
+        if node.attr == '_CURRENT_STATE_PLACEHOLDER':
+            node.attr = f'_{self.class_name.lower()}_current_state'
+        elif node.attr == '_VERSION_INSTANCES_SINGLETON_PLACEHOLDER':
+            node.attr = f'_{self.class_name.upper()}_VERSION_INSTANCES_SINGLETON'
+        return node
+    
+    def visit_FunctionDef(self, node):
+        node = self.generic_visit(node)
+        if node.name == '_SWITCH_TO_VERSION_PLACEHOLDER':
+            node.name = f'_{self.class_name.lower()}_switch_to_version'
+        return node
+
+    def visit_Assign(self, node):
+        node = self.generic_visit(node)
+        if isinstance(node.targets[0], ast.Name) and node.targets[0].id == '_SYNC_CALL_PLACEHOLDER_':
+            if self.sync_dispatch_chain:
+                node = self.sync_dispatch_chain
+            else:
+                # If there are no sync functions, remove the placeholder
+                node = None
+        return node

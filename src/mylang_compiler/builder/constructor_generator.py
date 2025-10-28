@@ -2,7 +2,7 @@ import ast
 
 from ..symbol_table.symbol_table import SymbolTable
 from ..util.ast_util import *
-from ..util.template_util import load_template_ast
+from ..util.template_util import load_template_ast, TemplateRenamer
 from ..util.builder_util import _create_slow_path_dispatcher
 from ..util import logger
 
@@ -22,13 +22,16 @@ class ConstructorGenerator:
         """Generate the public __init__ method for the unified class."""
         if not self.template_ast: return
 
+        # 0. Rewrite placeholders in the template AST
+        TemplateRenamer(class_name=self.class_name).visit(self.template_ast)
+
         # 1. Retrieve information for the __initialize__ method from the symbol table
         class_info = self.symbol_table.lookup_class(self.class_name)
         initialize_overloads = class_info.methods.get('__initialize__', [])
 
         # 2. Create a slow path dispatcher (if-elif chain)
         slow_path_body = _create_slow_path_dispatcher(
-            '__initialize__', initialize_overloads
+            self.class_name, '__initialize__', initialize_overloads
         )
         if not slow_path_body:
             slow_path_body.append(ast.Pass())
