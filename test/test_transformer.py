@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mylang_compiler.run import run_for_test
+from mvo_compiler.mvo_compiler import compile, execute
 
 TEST_ROOT = Path(__file__).resolve().parent
 SAMPLES_ROOT = TEST_ROOT / "resources" / "samples"
@@ -21,7 +21,8 @@ def test_transpilation_and_execution(input_dir: Path, tmp_path: Path):
     expected_output = expected_output_file.read_text(encoding="utf-8")
 
     # --- 2. Act ---
-    actual_output = run_for_test(input_dir, tmp_path)
+    compile(input_dir, tmp_path)
+    actual_output = execute("main.py", tmp_path)
 
     # --- 3. Assert ---
     assert expected_output.strip().replace('\r\n', '\n') == actual_output.strip().replace('\r\n', '\n'), "Runtime output does not match expected output."

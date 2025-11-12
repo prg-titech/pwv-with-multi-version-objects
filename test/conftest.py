@@ -1,8 +1,11 @@
 import pytest
+
 from pathlib import Path
 
-TEST_ROOT = Path(__file__).resolve().parent
-SAMPLES_ROOT = TEST_ROOT / "resources" / "samples" 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+TEST_ROOT = PROJECT_ROOT / "test"
+SAMPLES_ROOT = TEST_ROOT / "resources" / "samples"
+EXPECTED_ROOT = TEST_ROOT / "resources" / "expected_output"
 
 def pytest_addoption(parser):
     """Adds the --target_dir command-line option to pytest."""
@@ -38,3 +41,27 @@ def pytest_generate_tests(metafunc):
             test_case_dirs, 
             ids=[str(p.relative_to(SAMPLES_ROOT)) for p in test_case_dirs]
         )
+
+DEBUG_MODE = False
+
+def debug_log(message: str):
+    """Prints a debug message."""
+    if DEBUG_MODE:
+        print(f"[LOG]     {message}")
+
+def success_log(message: str):
+    """Prints a success message."""
+    if DEBUG_MODE:
+        print(f"[SUCCESS] {message}")
+
+def error_log(message: str):
+    """Prints an error message."""
+    print(f"[ERROR]   {message}")
+
+def no_header_log(message: str):
+    """Prints a message without a header."""
+    print(message)
+
+def log(message: str):
+    """Prints a general message that should always be visible."""
+    print(message)

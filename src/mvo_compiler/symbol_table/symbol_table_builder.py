@@ -8,7 +8,7 @@ from ..util.ast_util import get_class_version_info, get_class_version_info_from_
 
 class SymbolTableBuilder(ast.NodeVisitor):
     """
-    Traverses the MyLang AST to build a symbol table.
+    Traverses the Source AST to build a symbol table.
     """
     def __init__(self, symbol_table: SymbolTable):
         self.symbol_table = symbol_table

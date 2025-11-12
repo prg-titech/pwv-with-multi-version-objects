@@ -50,7 +50,7 @@ def _report_to_suite_bar_graph(results: list[Dict], csv_path: Path):
     ax.set_xlabel('Benchmark Target')
     # Y軸のラベルを "Performance Factor (x slower)" に変更
     ax.set_ylabel('Performance Factor (x slower)')
-    ax.set_title('MyLang Transpiler Performance Factor vs. Vanilla Python')
+    ax.set_title('MVO Compiler Performance Factor vs. Vanilla Python')
     ax.grid(axis='y', linestyle='--', alpha=0.7)
 
     # Y軸の基準線を 1.0 (vanillaと同じ速さ) に引く

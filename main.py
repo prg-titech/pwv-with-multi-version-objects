@@ -1,12 +1,15 @@
 import argparse
-import sys
 from pathlib import Path
 
-from mylang_compiler.run import run
-from mylang_compiler.util import logger
+from mvo_compiler.mvo_compiler import compile, execute
+from mvo_compiler.util import logger
+
+INPUT_BASE_PATH = Path("test/resources/samples")
+OUTPUT_BASE_PATH = Path("output")
+ENTRY_FILE_NAME = "main.py"
 
 def main():
-    parser = argparse.ArgumentParser(description="MyLang Transpiler")
+    parser = argparse.ArgumentParser(description="Compile and Run MVO Test Cases.")
     parser.add_argument("target_dir", help="Path to the test case directory (e.g., simple_cases/01).")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
     
@@ -15,8 +18,17 @@ def main():
     if args.debug:
         logger.DEBUG_MODE = True
         logger.debug_log("Debug mode enabled.")
-
-    run(args.target_dir)
+    
+    compile(
+        input_dir=INPUT_BASE_PATH / args.target_dir,
+        output_dir=OUTPUT_BASE_PATH,
+        delete_output_dir=True
+    )
+    output = execute(
+        entry_file=ENTRY_FILE_NAME,
+        dir=OUTPUT_BASE_PATH
+    )
+    logger.log(output)
 
 if __name__ == "__main__":
     main()

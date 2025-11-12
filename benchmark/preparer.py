@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 TARGETS_BASE_PATH = PROJECT_ROOT / "benchmark" / "targets"
 sys.path.append(str(PROJECT_ROOT))
 
-from src.mylang_compiler.run import transpile_directory
+from src.mvo_compiler.mvo_compiler import transpile_directory
 
 def _generate_script_from_template(template_path: Path, output_path: Path, loop_count: int):
     """

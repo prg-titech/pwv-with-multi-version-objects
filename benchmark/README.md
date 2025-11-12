@@ -1,8 +1,10 @@
-# MyLang Benchmark Suite
+# MVO Benchmark Suite
+
+**Now broken**
 
 ## Overview
 
-This directory contains a flexible and automated benchmark suite for measuring the performance overhead of the MyLang transpiler. It compares the execution time of code processed by our transpiler against an equivalent, handwritten "vanilla" Python implementation.
+This directory contains a flexible and automated benchmark suite for measuring the performance overhead of the MVO compiler. It compares the execution time of code processed by our transpiler against an equivalent, handwritten "vanilla" Python implementation.
 
 ---
 
@@ -53,7 +55,7 @@ benchmark/
 ### 2. Create mvo/ and vanilla/ Subdirectories
 Inside your new target directory, create two subdirectories:
 
-- `mvo/`: This will contain the source code to be processed by the MyLang transpiler.
+- `mvo/`: This will contain the source code to be processed by the mvo compiler.
 
 - `vanilla/`: This will contain the equivalent, handwritten Python code for comparison.
 

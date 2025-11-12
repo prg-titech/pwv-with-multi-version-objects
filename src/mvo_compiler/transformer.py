@@ -9,13 +9,13 @@ from .util import logger
 
 _REQUIRED_IMPORTS_TEMPLATE = "required_imports_template.py"
 
-class MyLangTransformer:
-    """Takes the MyLang AST of **a single file** as input and returns the compiled AST."""
+class SourceTransformer:
+    """Takes the Source AST of **a single file** as input and returns the compiled AST."""
     def __init__(self, sync_functions_dict = {}):
         self.sync_functions_dict = sync_functions_dict
 
     def transform(self, source_ast: ast.AST) -> ast.AST:
-        """Transform MyLang AST into Python AST."""
+        """Transform Source AST into Python AST."""
 
         # --- Pass 1: Construct Symbol Table ---
         symbol_table = SymbolTable()

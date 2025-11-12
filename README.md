@@ -38,7 +38,7 @@ uv sync
 `uv sync` will:
 - Create a virtual environment in .venv
 - Install project dependencies
-- Install the project itself in editable mode (so `src/mylang_compiler` can be imported from anywhere)
+- Install the project itself in editable mode (so `src/mvo_compiler` can be imported from anywhere)
 
 ### Activating the Environment
 
@@ -143,7 +143,7 @@ A brief overview of the key directories and files in this project.
 ├── main.py                          : The main entry point
 ├── pyproject.toml
 ├── src/                             : Contains all the source code for the transpiler library
-│   └── mylang_compiler/             : The main package for the transpiler
+│   └── mvo_compiler/             : The main package for the transpiler
 │       ├── run.py                   
 │       ├── my_lang_transformer.py
 │       ├── builder/                 : A package containing specialized builder classes

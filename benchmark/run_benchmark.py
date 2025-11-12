@@ -15,7 +15,7 @@ def main():
     """コマンドライン引数を解析し、専門家モジュールに処理を委譲する。"""
     
     # --- 1. コマンドライン引数の解析 ---
-    parser = argparse.ArgumentParser(description="Run the MyLang benchmark suite.")
+    parser = argparse.ArgumentParser(description="Run the MVO benchmark suite.")
     parser.add_argument("mode", choices=['suite', 'gradual'], help="The benchmark mode to run.")
     parser.add_argument("target_name", nargs='?', default=None, help="Optional: Target name for 'suite' mode.")
     parser.add_argument("--loop", type=int, default=10000, help="Number of loops inside the benchmark target.")
