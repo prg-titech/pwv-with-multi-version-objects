@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 TARGETS_BASE_PATH = PROJECT_ROOT / "benchmark" / "targets"
 sys.path.append(str(PROJECT_ROOT))
 
-from src.mvo_compiler.mvo_compiler import transpile_directory
+from src.mvo_compiler.mvo_compiler import compile
 
 def _generate_script_from_template(template_path: Path, output_path: Path, loop_count: int):
     """
@@ -41,7 +41,7 @@ def prepare_target(target_name: str, result_dir: Path, config: BenchmarkConfig) 
     vanilla_run_path.mkdir(parents=True)
     
     # 1. Transpile & Copy
-    transpile_directory(mvo_source_path, transpiled_run_path)
+    compile(mvo_source_path, transpiled_run_path)
     shutil.copytree(vanilla_source_path, vanilla_run_path, dirs_exist_ok=True)
     
     # 2. Generate Scripts from templates

@@ -39,8 +39,12 @@ def compile(
     # --- 3. Transform the ASTs and Write down to the output directory ---
     transformer = SourceTransformer(project_structure['sync_modules'])
     for rel_path, tree in project_structure['normal_files']:
-        # a. transform the AST
-        transformed_ast = transformer.transform(tree)
+        try:
+            # a. transform the AST
+            transformed_ast = transformer.transform(tree)
+        except Exception as e:
+            logger.error_log(f"Error transforming {rel_path}: {e}")
+            transformed_ast = None
 
         # b. Write the transformed AST back to the output directory
         if transformed_ast:
@@ -79,7 +83,7 @@ def execute(
         return result.stdout
     except subprocess.CalledProcessError as e:
         logger.error_log("Execution failed:")
-        logger.error_log(e.stderr)
+        raise RuntimeError(f"Execution failed for {entry_file_path}: {e.stderr}")
 
 def write_single_file(output_dir: Path, original_rel_path: Path, tree: ast.AST) -> None:
     """Write a single transformed AST to the specified directory as a file."""

@@ -18,9 +18,9 @@ def main():
     parser = argparse.ArgumentParser(description="Run the MVO benchmark suite.")
     parser.add_argument("mode", choices=['suite', 'gradual'], help="The benchmark mode to run.")
     parser.add_argument("target_name", nargs='?', default=None, help="Optional: Target name for 'suite' mode.")
-    parser.add_argument("--loop", type=int, default=10000, help="Number of loops inside the benchmark target.")
-    parser.add_argument("--repeat", type=int, default=5, help="Number of times to repeat the measurement.")
-    parser.add_argument("--format", type=str, default='cli', choices=['cli', 'graph'], help="The output format for the results.")
+    parser.add_argument("--loop", type=int, default=1, help="Number of loops inside the benchmark target.")
+    parser.add_argument("--repeat", type=int, default=1, help="Number of times to repeat the measurement.")
+    parser.add_argument("--format", type=str, default='graph', choices=['cli', 'graph'], help="The output format for the results.")
     args = parser.parse_args()
 
     # --- 2. 設定オブジェクトの生成 ---
@@ -32,10 +32,10 @@ def main():
     )
     output_config = OutputConfig(format=args.format) 
 
-    # --- 3. 実行専門家(runner)に処理を委譲 ---
+    # --- 3. ベンチマーク実行 ---
     csv_path = run_benchmarks(bench_config)
 
-    # --- 4. 結果表示専門家(reporter)に処理を委譲 ---
+    # --- 4. グラフ作成 ---
     if csv_path:
         # output_configにmodeを渡して、reporterがグラフの種類を判断できるようにする
         output_config.mode = args.mode
