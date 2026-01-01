@@ -45,16 +45,19 @@ def _report_to_suite_bar_graph(results: list[Dict], csv_path: Path):
     # 2. グラフを描画
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    ax.bar(target_names, factors, color='skyblue')
+    ax.bar(target_names, factors, color='white', edgecolor='black', hatch='xx', linewidth=1.0)
     
-    ax.set_xlabel('Benchmark Target')
-    # Y軸のラベルを "Performance Factor (x slower)" に変更
-    ax.set_ylabel('Performance Factor (x slower)')
-    ax.set_title('MVO Compiler Performance Factor vs. Vanilla Python')
+
+    # ax.set_title('MVO Compiler Performance Factor vs. Vanilla Python')
+    ax.set_xlabel('Benchmarks', fontsize=16)
+    ax.set_ylabel('Average execution time\nrelative to Python', fontsize=16)
     ax.grid(axis='y', linestyle='--', alpha=0.7)
 
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='y', labelsize=16)
+
     # Y軸の基準線を 1.0 (vanillaと同じ速さ) に引く
-    ax.axhline(y=1.0, color='r', linestyle='-')
+    ax.axhline(y=1.0, color='black', linestyle='--', linewidth=1.2)
 
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
@@ -94,11 +97,14 @@ def _report_to_gradual_line_graph(results: list[Dict], csv_path: Path):
     # X軸とY軸に、カテゴリ名ではなく、数値のリストを渡す
     ax.plot(x_values, y_values, marker='o', linestyle='-', color='dodgerblue')
     
-    ax.set_xlabel('Benchmark Parameter (e.g., Problem Size)') # X軸のラベルを汎用的に
-    ax.set_ylabel('Performance Factor (x slower)')
-    ax.set_title('Performance Factor vs. Benchmark Parameter')
+    # ax.set_title('Performance Factor vs. Benchmark Parameter')
+    ax.set_xlabel('Number of Fallbacks (out of ~70k)', fontsize=16) # X軸のラベルを汎用的に
+    ax.set_ylabel('Average execution time\nrelative to Python', fontsize=16)
+
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='y', labelsize=16)
     ax.grid(True, linestyle='--', alpha=0.7)
-    ax.axhline(y=1.0, color='r', linestyle='-')
+    ax.axhline(y=1.0, color='black', linestyle='--', linewidth=1.2)
 
 
     plt.tight_layout()
@@ -106,6 +112,7 @@ def _report_to_gradual_line_graph(results: list[Dict], csv_path: Path):
     # 3. グラフをファイルに保存
     output_path = csv_path.parent / "gradual_overhead_results.png"
     plt.savefig(output_path)
+    plt.show()
 
 def _report_to_cli(results: list[Dict]):
     """ベンチマーク結果をCLIに表示する。"""
