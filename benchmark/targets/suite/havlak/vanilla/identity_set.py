@@ -22,6 +22,6 @@
 from set import Set
 
 
-class IdentitySet(Set):
+class IdentitySet__1__(Set):
     def contains(self, obj):
         return self.has_some(lambda it: it is obj)
