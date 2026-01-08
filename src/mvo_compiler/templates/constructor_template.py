@@ -3,7 +3,6 @@
 def __init__(self, *args, **kwargs):
 
     self._CURRENT_STATE_PLACEHOLDER = self._VERSION_INSTANCES_SINGLETON_PLACEHOLDER[0]
-    self._version_locking = False
 
     try:
         self._CURRENT_STATE_PLACEHOLDER.__initialize__(*args, _wrapper_self=self, **kwargs)

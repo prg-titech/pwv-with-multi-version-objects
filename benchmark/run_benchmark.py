@@ -19,7 +19,7 @@ def main():
     parser.add_argument("mode", choices=['suite', 'gradual'], help="The benchmark mode to run.")
     parser.add_argument("target_name", nargs='?', default=None, help="Optional: Target name for 'suite' mode.")
     parser.add_argument("--loop", type=int, default=1, help="Number of loops inside the benchmark target.")
-    parser.add_argument("--repeat", type=int, default=1, help="Number of times to repeat the measurement.")
+    parser.add_argument("--repeat", type=int, default=500, help="Number of times to repeat the measurement.")
     parser.add_argument("--format", type=str, default='graph', choices=['cli', 'graph'], help="The output format for the results.")
     args = parser.parse_args()
 

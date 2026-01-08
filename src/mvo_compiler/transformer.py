@@ -11,8 +11,9 @@ _REQUIRED_IMPORTS_TEMPLATE = "required_imports_template.py"
 
 class SourceTransformer:
     """Takes the Source AST of **a single file** as input and returns the compiled AST."""
-    def __init__(self, sync_functions_dict = {}):
+    def __init__(self, sync_functions_dict = {}, incompatibilities = None):
         self.sync_functions_dict = sync_functions_dict
+        self.incompatibilities = incompatibilities
 
     def transform(self, source_ast: ast.AST) -> ast.AST:
         """Transform Source AST into Python AST."""
@@ -37,11 +38,15 @@ class SourceTransformer:
         all_sync_imports = []
         for class_name, _ in versioned_classes_by_name.items():
             state_sync_components = self.sync_functions_dict.get(class_name, ([], []))
+            if self.incompatibilities:
+                incompatibility = self.incompatibilities[class_name]
+            else:
+                incompatibility = None
             
             sync_imports, _ = state_sync_components
             all_sync_imports.extend(sync_imports)
 
-            builder = UnifiedClassBuilder(class_name, state_sync_components, symbol_table)
+            builder = UnifiedClassBuilder(class_name, state_sync_components, symbol_table, incompatibility)
             unified_class_ast = builder.build()
             unified_classes[class_name] = unified_class_ast
         

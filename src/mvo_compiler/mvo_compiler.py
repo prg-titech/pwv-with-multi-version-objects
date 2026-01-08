@@ -37,7 +37,7 @@ def compile(
     logger.success_log(f"Completed parsing and classifying files in {input_dir}.")
 
     # --- 3. Transform the ASTs and Write down to the output directory ---
-    transformer = SourceTransformer(project_structure['sync_modules'])
+    transformer = SourceTransformer(project_structure['sync_modules'], project_structure['incompatibilities'])
     for rel_path, tree in project_structure['normal_files']:
         try:
             # a. transform the AST

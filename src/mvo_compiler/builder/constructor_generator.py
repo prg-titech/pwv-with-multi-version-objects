@@ -37,7 +37,7 @@ class ConstructorGenerator:
             slow_path_body.append(ast.Pass())
 
         # 3. Replace the body of except block in the template with the generated slow path body
-        try_except_node = self.template_ast.body[2]  # Node: try-except
+        try_except_node = self.template_ast.body[1]  # Node: try-except
         except_handler = try_except_node.handlers[0] # Node: except
         except_handler.body = slow_path_body # except block body replacement
 
