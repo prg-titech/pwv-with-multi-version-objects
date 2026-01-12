@@ -11,6 +11,12 @@ ENTRY_FILE_NAME = "main.py"
 def main():
     parser = argparse.ArgumentParser(description="Compile and Run MVO Test Cases.")
     parser.add_argument("target_dir", help="Path to the test case directory (e.g., simple_cases/01).")
+    parser.add_argument(
+        "--strategy",
+        choices=["continuity", "latest"],
+        default="continuity",
+        help="Version selection strategy (default: continuity).",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")
     
     args = parser.parse_args()
@@ -22,6 +28,7 @@ def main():
     compile(
         input_dir=INPUT_BASE_PATH / args.target_dir,
         output_dir=OUTPUT_BASE_PATH,
+        version_selection_strategy=args.strategy,
         delete_output_dir=True
     )
     output = execute(

@@ -13,6 +13,7 @@ def compile(
         input_dir: Path,
         output_dir: Path,
         *,
+        version_selection_strategy: str = "continuity", # continuity | latest
         delete_output_dir: bool = True
 ) -> None:
     """
@@ -37,7 +38,7 @@ def compile(
     logger.success_log(f"Completed parsing and classifying files in {input_dir}.")
 
     # --- 3. Transform the ASTs and Write down to the output directory ---
-    transformer = SourceTransformer(project_structure['sync_modules'], project_structure['incompatibilities'])
+    transformer = SourceTransformer(project_structure['sync_modules'], project_structure['incompatibilities'], version_selection_strategy)
     for rel_path, tree in project_structure['normal_files']:
         try:
             # a. transform the AST

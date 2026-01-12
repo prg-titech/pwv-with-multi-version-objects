@@ -12,11 +12,12 @@ class UnifiedClassBuilder:
     """
     Orchestrates the transformation of versioned classes' ASTs into a single, unified class AST.
     """
-    def __init__(self, class_name: str, state_sync_components: tuple, symbol_table: SymbolTable, incompatibility: dict = None):
+    def __init__(self, class_name: str, state_sync_components: tuple, symbol_table: SymbolTable, incompatibility: dict = None, version_selection_strategy: str = "continuity"):
         self.class_name = class_name
         self.state_sync_components = state_sync_components
         self.incompatibility = incompatibility
         self.symbol_table = symbol_table
+        self.version_selection_strategy = version_selection_strategy # continuity | latest
         self.new_class_ast: ast.ClassDef = None
 
     def build(self) -> ast.ClassDef:
@@ -39,7 +40,7 @@ class UnifiedClassBuilder:
         constructor_generator.generate()
 
         # --- Generate stub methods ---
-        stub_generator = StubMethodGenerator(new_class_ast, self.symbol_table, self.class_name)
+        stub_generator = StubMethodGenerator(new_class_ast, self.symbol_table, self.class_name, self.version_selection_strategy)
         stub_generator.generate()
 
         # --- Inject __getattr__ and __setattr__ methods ---

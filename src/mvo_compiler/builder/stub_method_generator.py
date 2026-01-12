@@ -11,10 +11,11 @@ class StubMethodGenerator:
     """
     Generates stub methods for the unified class based on the symbol table.
     """
-    def __init__(self, target_class: ast.ClassDef, symbol_table: SymbolTable, base_name: str):
+    def __init__(self, target_class: ast.ClassDef, symbol_table: SymbolTable, base_name: str, version_selection_strategy: str = "continuity"):
         self.target_class = target_class
         self.symbol_table = symbol_table
         self.base_name = base_name
+        self.version_selection_strategy = version_selection_strategy
 
     def generate(self):
         """Generates public stub methods."""
@@ -51,6 +52,38 @@ class StubMethodGenerator:
             args=stub_args,
             body=[], decorator_list=[]
         )
+
+        # 1.5
+        if self.version_selection_strategy == "latest":
+            # self.current_state.version_num
+            current_version_num_ast = ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(self.base_name), ctx=ast.Load()), 
+                                                attr='_version_number',
+                                                ctx=ast.Load())
+            
+            class_info = self.symbol_table.lookup_class(self.base_name)
+            overloads = class_info.methods.get(method_name, [])
+            latest_version_num = sorted([int(info.version) for info in overloads])[-1]
+            latest_version_num_ast = ast.Constant(value=latest_version_num)
+
+            ast_if = ast.If(
+                    test=ast.Compare(
+                        left=current_version_num_ast,
+                        ops=[ast.NotEq()],
+                        comparators=[latest_version_num_ast],
+                    ),
+                    body=[
+                        ast.Expr(
+                            value=ast.Call(
+                                func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_switch_to_version_method_name(self.base_name), ctx=ast.Load()),
+                                args=[latest_version_num_ast],
+                                keywords=[],
+                            )
+                        )
+                    ],
+                    orelse=[],
+                )
+            
+            stub_method.body.append(ast_if)
 
         # 2. Create AST for fast path (try block)
         call_args = []
@@ -101,7 +134,7 @@ class StubMethodGenerator:
 
         except_handler = ast.ExceptHandler(type=ast.Name(id='AttributeError', ctx=ast.Load()), name=None, body=slow_path_body)
         
-        stub_method.body = [ast.Try(body=fast_path_body, handlers=[except_handler], orelse=[], finalbody=[])]
+        stub_method.body.append(ast.Try(body=fast_path_body, handlers=[except_handler], orelse=[], finalbody=[]))
         self.target_class.body.append(stub_method)
 
     def _generate_inconsistent_signature_stub(self, method_name: str, overloads: list[MethodInfo]):
@@ -118,6 +151,38 @@ class StubMethodGenerator:
             ),
             body=[], decorator_list=[]
         )
+
+        # 1.5
+        if self.version_selection_strategy == "latest":
+            # self.current_state.version_num
+            current_version_num_ast = ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(self.base_name), ctx=ast.Load()), 
+                                                attr='_version_number',
+                                                ctx=ast.Load())
+            
+            class_info = self.symbol_table.lookup_class(self.base_name)
+            overloads = class_info.methods.get(method_name, [])
+            latest_version_num = sorted([int(info.version) for info in overloads])[-1]
+            latest_version_num_ast = ast.Constant(value=latest_version_num)
+
+            ast_if = ast.If(
+                    test=ast.Compare(
+                        left=current_version_num_ast,
+                        ops=[ast.NotEq()],
+                        comparators=[latest_version_num_ast],
+                    ),
+                    body=[
+                        ast.Expr(
+                            value=ast.Call(
+                                func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_switch_to_version_method_name(self.base_name), ctx=ast.Load()),
+                                args=[latest_version_num_ast],
+                                keywords=[],
+                            )
+                        )
+                    ],
+                    orelse=[],
+                )
+            
+            stub_method.body.append(ast_if)
 
         # 2. Create AST for fast path (try block)
         fast_path_body = [ast.Return(value=ast.Call(
@@ -142,11 +207,11 @@ class StubMethodGenerator:
         )
 
         # 4. Combine into try-except structure
-        stub_method.body = [ast.Try(
+        stub_method.body.append(ast.Try(
             body=fast_path_body,
             handlers=[except_handler],
             orelse=[],
             finalbody=[]
-        )]
+        ))
         
         self.target_class.body.append(stub_method)
