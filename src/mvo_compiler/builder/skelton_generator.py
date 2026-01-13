@@ -36,6 +36,13 @@ class SkeltonGenerator:
 
         self._create_switch_to_version_method()
 
+        # Temp: inject _switch_count attribute
+        switch_count_attr = ast.Assign(
+            targets=[ast.Name(id='_switch_count', ctx=ast.Store())],
+            value=ast.Constant(value=0)
+        )
+        self.target_class.body.insert(0, switch_count_attr)
+
         return self.target_class
 
 

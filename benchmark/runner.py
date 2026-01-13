@@ -36,17 +36,22 @@ def run_benchmarks(bench_config: BenchmarkConfig) -> Path | None:
             targets_to_run = [bench_config.target_name]
         else:
             targets_to_run = [d.name for d in targets_path.iterdir() if d.is_dir()]
-    
+    elif bench_config.mode == 'switch':
+        targets_path = TARGETS_BASE_PATH / "switch_count"
+        targets_to_run = sorted([d.name for d in targets_path.iterdir() if d.is_dir()])
 
     # 3. 各ターゲットについて「準備」と「測定」を順番に実行
-    for target_name in targets_to_run:
-        target_result_dir = result_dir / target_name
-        
-        if not prepare_target(target_name, target_result_dir, bench_config):
-            continue
-        
-        result = execute_and_measure(target_name, target_result_dir, bench_config)
-        results_data.append(result)
+    if bench_config.mode == 'switch':
+        raise NotImplementedError("Switch count benchmark mode is not yet implemented.")
+    else:
+        for target_name in targets_to_run:
+            target_result_dir = result_dir / target_name
+            
+            if not prepare_target(target_name, target_result_dir, bench_config):
+                continue
+            
+            result = execute_and_measure(target_name, target_result_dir, bench_config)
+            results_data.append(result)
     
     # 4. 総合結果をCSVファイルに保存
     if not results_data:
