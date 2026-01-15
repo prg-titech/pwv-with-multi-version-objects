@@ -6,6 +6,100 @@ import matplotlib.pyplot as plt
 
 from config import OutputConfig
 
+
+def report_results_switch(csv_path: Path):
+    """
+    CSV columns:
+      name, continuity_switch_count, latest_switch_count, performance_factor
+    """
+    csv_path = Path(csv_path)
+
+    rows = []
+    with csv_path.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        required = {"name", "continuity_switch_count", "latest_switch_count", "performance_factor"}
+        if reader.fieldnames is None or not required.issubset(set(reader.fieldnames)):
+            raise ValueError(f"CSV must have columns: {sorted(required)}; got: {reader.fieldnames}")
+
+        for r in reader:
+            name = r["name"]
+            c = float(r["continuity_switch_count"])
+            l = float(r["latest_switch_count"])
+            ratio = (l / c) if c != 0 else (float("inf") if l > 0 else 1.0)
+            rows.append((name, c, l, ratio))
+
+    rows.sort(key=lambda t: (t[3], t[2]), reverse=True)
+    if not rows:
+        return
+
+    names = [t[0] for t in rows]
+    cont = [t[1] for t in rows]
+    latest = [t[2] for t in rows]
+    ratio = [t[3] for t in rows]
+    x = list(range(len(names)))
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Bars: ratio (no legend entry)
+    ax.bar(
+        x,
+        ratio,
+        edgecolor="black",
+        facecolor="white",
+        hatch="///",
+        linewidth=1.0,
+    )
+
+    # Red reference line at 1.0 (no legend entry)
+    ax.axhline(y=1.0, color="red", linestyle="-", linewidth=1.5)
+
+    ax.set_xlabel("Benchmarks", fontsize=16)
+    ax.set_ylabel("Switch-count ratio\n(Latest / Continuity) (×)", fontsize=16)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(names, rotation=45, ha="right")
+
+    ax.tick_params(axis="x", labelsize=16)
+    ax.tick_params(axis="y", labelsize=16)
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Right axis: counts (log)
+    axr = ax.twinx()
+    axr.set_yscale("log")
+    axr.set_ylabel("Switch count (log scale)", fontsize=16)
+    axr.tick_params(axis="y", labelsize=16)
+
+    # Lines: switch counts (legend kept)
+    line1, = axr.plot(
+        x, cont,
+        marker="o", linestyle="-", linewidth=1.2, color="black",
+        label="continuity-first",
+    )
+    line2, = axr.plot(
+        x, latest,
+        marker="s", linestyle="--", linewidth=1.2, color="black",
+        label="latest-first",
+    )
+
+    # Legend: top-right, right-aligned
+    leg = ax.legend(
+        handles=[line1, line2],
+        loc="upper right",
+        fontsize=14,
+        frameon=True,
+        alignment="right",   # matplotlib>=3.6 くらいで効く。古いと無視されるが害はない
+    )
+    # 右詰めが効かない環境向けの保険（Textオブジェクトを右寄せ）
+    for t in leg.get_texts():
+        t.set_ha("right")
+
+    plt.tight_layout()
+
+    output_pdf = csv_path.parent / "switch_ratio_results.pdf"
+    plt.savefig(output_pdf, format="pdf")
+    plt.show()
+    return output_pdf
+
 def report_results(csv_path: Path, config: OutputConfig):
     """Reads the CSV results and outputs them with the specified format."""
     with open(csv_path, 'r', encoding='utf-8') as f:
@@ -63,8 +157,8 @@ def _report_to_suite_bar_graph(results: list[Dict], csv_path: Path):
     plt.tight_layout()
 
     # 3. グラフをファイルに保存
-    output_path = csv_path.parent / "benchmark_results.png"
-    plt.savefig(output_path)
+    output_path = csv_path.parent / "benchmark_results.pdf"
+    plt.savefig(output_path, format="pdf")
     plt.show()
 
 def _report_to_gradual_line_graph(results: list[Dict], csv_path: Path):
@@ -110,8 +204,8 @@ def _report_to_gradual_line_graph(results: list[Dict], csv_path: Path):
     plt.tight_layout()
 
     # 3. グラフをファイルに保存
-    output_path = csv_path.parent / "gradual_overhead_results.png"
-    plt.savefig(output_path)
+    output_path = csv_path.parent / "gradual_overhead_results.pdf"
+    plt.savefig(output_path, format="pdf")
     plt.show()
 
 def _report_to_cli(results: list[Dict]):

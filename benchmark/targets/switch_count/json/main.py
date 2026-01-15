@@ -316,6 +316,282 @@ class _Parser__1__:
         while self._is_white_space():
             self._read()
 
+    def _start_capture(self):
+        self._capture_start = self._index
+
+    def _pause_capture(self):
+        end = self._index if self._current is None else self._index - 1
+        self._capture_buffer += self._input[self._capture_start : end + 1]
+        self._capture_start = -1
+
+    def _end_capture(self):
+        end = self._index if self._current is None else self._index - 1
+
+        if "" == self._capture_buffer:
+            captured = self._input[self._capture_start : end + 1]
+        else:
+            self._capture_buffer += self._input[self._capture_start : end + 1]
+            captured = self._capture_buffer
+            self._capture_buffer = ""
+
+        self._capture_start = -1
+        return captured
+
+    def _expected(self, expected):
+        if self._is_end_of_text():
+            return self._error("Unexpected end of input")
+
+        return self._error("Expected " + expected)
+
+    def _error(self, message):
+        return _ParseException(message, self._index, self._line, self._column - 1)
+
+    def _is_white_space(self):
+        return (
+            " " == self._current
+            or "\t" == self._current
+            or "\n" == self._current
+            or "\r" == self._current
+        )
+
+    def _is_digit(self):
+        return (
+            "0" == self._current
+            or "1" == self._current
+            or "2" == self._current
+            or "3" == self._current
+            or "4" == self._current
+            or "5" == self._current
+            or "6" == self._current
+            or "7" == self._current
+            or "8" == self._current
+            or "9" == self._current
+        )
+
+    def _is_end_of_text(self):
+        return self._current is None
+
+class _Parser__2__:
+    def __init__(self, string):
+        self._input = string
+        self._index = -1
+        self._line = 1
+        self._capture_start = -1
+        self._column = 0
+        self._current = None
+        self._capture_buffer = ""
+
+    def parse(self):
+        self._read()
+        self._skip_white_space()
+        result = self._read_value()
+        self._skip_white_space()
+        if not self._is_end_of_text():
+            raise self._error("Unexpected character")
+        return result
+
+    def _read_value(self):
+        if self._current == "n":
+            return self._read_null()
+        if self._current == "t":
+            return self._read_true()
+        if self._current == "f":
+            return self._read_false()
+        if self._current == '"':
+            return self._read_string()
+        if self._current == "[":
+            return self._read_array()
+        if self._current == "{":
+            return self._read_object()
+        if (
+            self._current == "-"
+            or self._current == "0"
+            or self._current == "1"
+            or self._current == "2"
+            or self._current == "3"
+            or self._current == "4"
+            or self._current == "5"
+            or self._current == "6"
+            or self._current == "7"
+            or self._current == "8"
+            or self._current == "9"
+        ):
+            return self._read_number()
+        raise self._expected("value")
+
+    def _read_array_element(self, array):
+        self._skip_white_space()
+        array.add(self._read_value())
+        self._skip_white_space()
+
+    def _read_array(self):
+        self._read()
+        array = _JsonArray()
+        self._skip_white_space()
+        if self._read_char("]"):
+            return array
+
+        self._read_array_element(array)
+        while self._read_char(","):
+            self._read_array_element(array)
+
+        if not self._read_char("]"):
+            self._expected("',' or ']'")
+
+        return array
+
+    def _read_object_key_value_pair(self, obj):
+        self._skip_white_space()
+        name = self._read_name()
+        self._skip_white_space()
+
+        if not self._read_char(":"):
+            raise self._expected("':'")
+
+        self._skip_white_space()
+        obj.add(name, self._read_value())
+        self._skip_white_space()
+
+    def _read_object(self):
+        self._read()
+        obj = _JsonObject()
+        self._skip_white_space()
+        if self._read_char("}"):
+            return obj
+
+        self._read_object_key_value_pair(obj)
+        while self._read_char(","):
+            self._read_object_key_value_pair(obj)
+
+        if not self._read_char("}"):
+            raise self._expected("',' or '}'")
+
+        return obj
+
+    def _read_name(self):
+        if self._current != '"':
+            raise self._expected("name")
+        return self._read_string_internal()
+
+    def _read_null(self):
+        self._read()
+        self._read_required_char("u")
+        self._read_required_char("l")
+        self._read_required_char("l")
+        return _LITERAL_NULL
+
+    def _read_true(self):
+        self._read()
+        self._read_required_char("r")
+        self._read_required_char("u")
+        self._read_required_char("e")
+        return _LITERAL_TRUE
+
+    def _read_false(self):
+        self._read()
+        self._read_required_char("a")
+        self._read_required_char("l")
+        self._read_required_char("s")
+        self._read_required_char("e")
+        return _LITERAL_FALSE
+
+    def _read_required_char(self, ch):
+        if not self._read_char(ch):
+            raise self._expected("'" + ch + "'")
+
+    def _read_string(self):
+        return _JsonString(self._read_string_internal())
+
+    def _read_string_internal(self):
+        self._read()
+        self._start_capture()
+        while self._current != '"':
+            if self._current == "\\":
+                self._pause_capture()
+                self._read_escape()
+                self._start_capture()
+            else:
+                self._read()
+        string = self._end_capture()
+        self._read()
+        return string
+
+    def _read_escape_char(self):
+        if self._current == '"':
+            return '"'
+        if self._current == "/":
+            return "/"
+        if self._current == "\\":
+            return "\\"
+        if self._current == "b":
+            return "\b"
+        if self._current == "f":
+            return "\f"
+        if self._current == "n":
+            return "\n"
+        if self._current == "r":
+            return "\r"
+        if self._current == "t":
+            return "\t"
+        raise self._expected("valid escape sequence")
+
+    def _read_escape(self):
+        self._read()
+        self._capture_buffer += self._read_escape_char()
+        self._read()
+
+    def _read_number(self):
+        self._start_capture()
+        self._read_char("-")
+        first_digit = self._current
+        if not self._read_digit():
+            raise self._expected("digit")
+
+        if first_digit != "0":
+            while self._read_digit():
+                pass
+
+        self._read_fraction()
+        self._read_exponent()
+        return _JsonNumber(self._end_capture())
+
+    def _read_fraction(self):
+        if not self._read_char("."):
+            return False
+
+        if not self._read_digit():
+            raise self._expected("digit")
+
+        while self._read_digit():
+            pass
+
+        return True
+
+    def _read_exponent(self):
+        if not self._read_char("e") and not self._read_char("E"):
+            return False
+
+        if not self._read_char("+"):
+            return self._read_char("-")
+
+        if self._read_digit():
+            raise self._expected("digit")
+
+        while self._read_digit():
+            pass
+
+        return True
+
+    def _read_digit(self):
+        if not self._is_digit():
+            return False
+        self._read()
+        return True
+
+    def _skip_white_space(self):
+        while self._is_white_space():
+            self._read()
+
     def _read(self):
         if "\n" == self._current:
             self._line += 1
@@ -382,7 +658,6 @@ class _Parser__1__:
 
     def _is_end_of_text(self):
         return self._current is None
-
 
 class _HashIndexTable:
     def __init__(self):
@@ -519,14 +794,10 @@ class _JsonString__1__(_JsonValue):
         return True
 
 def main():
-    start_time = time.perf_counter()
     
     for _ in range(TIMES):
         _Parser(_RAP_BENCHMARK_MINIFIED).parse()
     
-    end_time = time.perf_counter()
-    avg_time = (end_time - start_time) / TIMES
-
-    print(avg_time)
+    print(_Parser._switch_count)
 
 main()

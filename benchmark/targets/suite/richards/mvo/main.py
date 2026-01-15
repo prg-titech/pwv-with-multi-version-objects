@@ -43,7 +43,7 @@ class Richards__1__:
         return result
 
 
-class _RBObject:
+class _RBObject__1__:
     def append(self, packet, queue_head):
         packet.link = _NO_WORK
         if _NO_WORK == queue_head:
@@ -291,6 +291,7 @@ class _Packet__1__(_RBObject):
         self.data = [0] * _DATA_SIZE
 
 
+# @classmethod を使っているので通常クラス
 class _TaskState(_RBObject):
     def __init__(self):
         self._task_holding = False
@@ -351,7 +352,7 @@ class _TaskState(_RBObject):
         return cls().waiting_with_packet()
 
 
-class _TaskControlBlock(_TaskState):
+class _TaskControlBlock__1__(_TaskState):
     def __init__(
         self,
         link,

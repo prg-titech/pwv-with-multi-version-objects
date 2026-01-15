@@ -5,7 +5,7 @@ from typing import List, Dict
 
 from config import BenchmarkConfig
 from preparer import prepare_target
-from executor import execute_and_measure
+from executor import execute_and_measure, execute_and_measure_for_switch_count
 
 import sys
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -42,7 +42,16 @@ def run_benchmarks(bench_config: BenchmarkConfig) -> Path | None:
 
     # 3. 各ターゲットについて「準備」と「測定」を順番に実行
     if bench_config.mode == 'switch':
-        raise NotImplementedError("Switch count benchmark mode is not yet implemented.")
+        for target_name in targets_to_run:
+            target_result_dir0 = result_dir / target_name / "continuity"
+            target_result_dir1 = result_dir / target_name / "latest"
+            if not prepare_target(target_name, target_result_dir0, bench_config, compile_strategy="continuity"):
+                continue
+            if not prepare_target(target_name, target_result_dir1, bench_config, compile_strategy="latest"):
+                continue
+
+            result = execute_and_measure_for_switch_count(target_name, result_dir / target_name, bench_config)
+            results_data.append(result)
     else:
         for target_name in targets_to_run:
             target_result_dir = result_dir / target_name

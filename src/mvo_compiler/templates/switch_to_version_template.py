@@ -1,7 +1,7 @@
 # This file is a template for the transpiler to parse and reuse ASTs.
 # It is not executed directly.
 def _SWITCH_TO_VERSION_PLACEHOLDER(self, version_num):
-    self._switch_count += 1
+    type(self)._switch_count += 1
     current_version_num = self._CURRENT_STATE_PLACEHOLDER._version_number
 
     _SYNC_CALL_PLACEHOLDER_ = None

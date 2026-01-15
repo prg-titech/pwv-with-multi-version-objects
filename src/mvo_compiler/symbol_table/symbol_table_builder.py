@@ -34,7 +34,6 @@ class SymbolTableBuilder(ast.NodeVisitor):
         if is_versioned:
             bases_for_this_version = []
             for base_node in node.bases:
-                print(ast.dump(base_node))
                 parent_base_name, parent_version = get_class_version_info_from_name(base_node.id)
                 
                 if not parent_base_name:

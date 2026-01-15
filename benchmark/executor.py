@@ -60,3 +60,32 @@ def execute_and_measure(target_name: str, result_dir: Path, config: BenchmarkCon
         "vanilla_time": vanilla_time,
         "performance_factor": performance_factor
     }
+
+def execute_and_measure_for_switch_count(target_name: str, result_dir: Path, config: BenchmarkConfig) -> Dict:
+    """
+    Measures results of a single switch count benchmark target.
+    Returns a dictionary of results.
+    A formatted dictionary like:
+    {
+        "name": str,
+        "continuity_switch_count": int,
+        "latest_switch_count": int,
+        "performance_factor": float,
+    }
+    """
+    continuity_main = result_dir / "continuity" / "main.py"
+    latest_main = result_dir / "latest" / "main.py"
+
+    continuity_switch_count = _time_execution(continuity_main, 1)
+    latest_switch_count = _time_execution(latest_main, 1)
+    
+    performance_factor = 0.0
+    if continuity_switch_count > 0 and latest_switch_count > 0:
+        performance_factor = latest_switch_count / continuity_switch_count
+
+    return {
+        "name": target_name,
+        "continuity_switch_count": continuity_switch_count,
+        "latest_switch_count": latest_switch_count,
+        "performance_factor": performance_factor
+    }

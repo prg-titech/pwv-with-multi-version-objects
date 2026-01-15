@@ -3,7 +3,7 @@ from pathlib import Path
 
 from config import BenchmarkConfig, OutputConfig
 from runner import run_benchmarks # runnerのメイン関数をインポート
-from reporter import report_results
+from reporter import report_results, report_results_switch
 
 import sys
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -16,7 +16,7 @@ def main():
     
     # --- 1. コマンドライン引数の解析 ---
     parser = argparse.ArgumentParser(description="Run the MVO benchmark suite.")
-    parser.add_argument("mode", choices=['suite', 'gradual'], help="The benchmark mode to run.")
+    parser.add_argument("mode", choices=['suite', 'gradual', 'switch'], help="The benchmark mode to run.")
     parser.add_argument("target_name", nargs='?', default=None, help="Optional: Target name for 'suite' mode.")
     parser.add_argument("--loop", type=int, default=1, help="Number of loops inside the benchmark target.")
     parser.add_argument("--repeat", type=int, default=500, help="Number of times to repeat the measurement.")
@@ -39,7 +39,10 @@ def main():
     if csv_path:
         # output_configにmodeを渡して、reporterがグラフの種類を判断できるようにする
         output_config.mode = args.mode
-        report_results(csv_path, output_config)
+        if args.mode == 'suite' or args.mode == 'gradual':            
+            report_results(csv_path, output_config)
+        else:
+            report_results_switch(csv_path)
 
 if __name__ == "__main__":
     main()
