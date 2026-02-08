@@ -23,18 +23,34 @@ def pytest_generate_tests(metafunc):
         
         search_root = RESOURCES_ROOT
         if target_path_str:
-            search_root = RESOURCES_ROOT / target_path_str
+            candidate = RESOURCES_ROOT / target_path_str
+            if not candidate.is_dir():
+                parts = Path(target_path_str).parts
+                if parts:
+                    last = parts[-1]
+                    if not last.startswith("TEST_"):
+                        parts = parts[:-1] + (f"TEST_{last}",)
+                    candidate = RESOURCES_ROOT.joinpath(*parts)
+            if candidate.name in {"sources", "outputs"}:
+                parent = candidate.parent
+                if (parent / "sources").is_dir() and (parent / "outputs").is_dir():
+                    candidate = parent
+            search_root = candidate
 
         if not search_root.is_dir():
             pytest.fail(f"Test case directory not found: {search_root}")
 
-        # Collect test case directories: resources/**/TEST_*/{sources, outputs}
-        test_case_dirs = [
-            p for p in search_root.glob("**/TEST_*")
-            if p.is_dir()
-            and (p / "sources").is_dir()
-            and (p / "outputs").is_dir()
-        ]
+        # If the search root itself is a test case, use it directly.
+        if (search_root / "sources").is_dir() and (search_root / "outputs").is_dir():
+            test_case_dirs = [search_root]
+        else:
+            # Collect test case directories: resources/**/TEST_*/{sources, outputs}
+            test_case_dirs = [
+                p for p in search_root.glob("**/TEST_*")
+                if p.is_dir()
+                and (p / "sources").is_dir()
+                and (p / "outputs").is_dir()
+            ]
         if not test_case_dirs:
             pytest.fail(f"No test cases (directories with sources/outputs) found in {search_root}")
 

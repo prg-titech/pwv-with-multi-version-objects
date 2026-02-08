@@ -5,7 +5,7 @@ from mvo_compiler.mvo_compiler import compile, execute
 from mvo_compiler.util import logger
 from mvo_compiler.util.constants import DEFAULT_VERSION_SELECTION_STRATEGY, VERSION_SELECTION_STRATEGIES
 
-INPUT_BASE_PATH = Path("test/resources/samples")
+INPUT_BASE_PATH = Path(".")
 OUTPUT_BASE_PATH = Path("output")
 ENTRY_FILE_NAME = "main.py"
 

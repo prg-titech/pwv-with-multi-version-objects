@@ -4,15 +4,6 @@
 
 本プロジェクトは、論文で提案する「PWV with Multi-Version Objects (MVO)」の PoC トランスパイラです。Python の AST を解析し、バージョン付きクラス群を統合クラスに変換して実行します。
 
-## 仕組み
-
-1. Parse: 入力ディレクトリ配下の .py を AST 化し、_sync.py を同期モジュールとして分類します。 .json も読み込みます。
-2. Transform:
-- SymbolTable 構築: クラス/メソッド/継承関係を収集します。
-- UnifiedClassBuilder: バージョン付きクラスを統合クラスへ変換します（State パターン）。
-3. Generate: AST を Python ソースに戻し、出力ディレクトリに書き出します。
-4. Execute: 生成された main.py を実行します（main.py 経由の場合）。
-
 ## 要件
 
 - Python 3.12 以上
@@ -51,20 +42,21 @@ deactivate
 ### 手動実行
 
 ```bash
-# 例: basic_cases/basic_01 を実行
-python main.py basic_cases/basic_01
+# 例: test/resources/basic_cases/TEST_basic_01/sources を実行
+python main.py test/resources/basic_cases/TEST_basic_01/sources
 
 # デバッグログを有効化
-python main.py basic_cases/basic_01 --debug
+python main.py test/resources/basic_cases/TEST_basic_01/sources --debug
 
 # バージョン選択戦略を指定
-python main.py basic_cases/basic_01 --strategy latest
+python main.py test/resources/basic_cases/TEST_basic_01/sources --strategy latest
 ```
 
-- target_dir は test/resources/samples からの相対パスです。
+- target_dir は main.py 内の `INPUT_BASE_PATH` からの相対パスです。
+  - 現状の `INPUT_BASE_PATH` はリポジトリルート（`.`）です。
 - strategy は continuity | latest を選択します。
 
-## 入力形式と暗黙ルール
+## 入力形式
 
 ### 1. 入力ディレクトリ
 
@@ -133,8 +125,9 @@ main.py 経由で実行する場合、入力ディレクトリ直下に main.py 
 
 ## テスト
 
-- 入力サンプル: test/resources/samples/
-- 期待出力: test/resources/expected_output/
+- テストケース: test/resources/**/TEST_*/ 以下
+- 入力サンプル: test/resources/**/TEST_*/sources/
+- 期待出力: test/resources/**/TEST_*/outputs/output.txt
 
 ### テストの実行
 
@@ -143,10 +136,7 @@ main.py 経由で実行する場合、入力ディレクトリ直下に main.py 
 pytest
 
 # 特定のテストのみ
-pytest --target_dir=basic_cases/basic_01
-
-# デバッグログ付き
-pytest --debug --target_dir=basic_cases/basic_01
+pytest --target_dir=basic_cases/TEST_basic_01
 ```
 
 ## ディレクトリ構成
@@ -169,6 +159,10 @@ pytest --debug --target_dir=basic_cases/basic_01
     ├── test_create.py
     ├── test_transformer.py
     └── resources/
-        ├── samples/
-        └── expected_output/
+        ├── basic_cases/
+        │   └── TEST_basic_01/
+        │       ├── sources/
+        │       └── outputs/
+        └── features/
+            └── ...
 ```

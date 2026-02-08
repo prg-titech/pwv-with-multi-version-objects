@@ -8,6 +8,7 @@ wheels/
 
 # pytest-generated files
 .pytest_cache/
+pytestdebug.log*
 
 # Virtual environments
 .venv
