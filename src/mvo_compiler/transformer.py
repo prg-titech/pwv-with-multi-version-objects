@@ -7,80 +7,104 @@ from .symbol_table.symbol_table_builder import SymbolTableBuilder
 from .util import logger
 from .util.constants import DEFAULT_VERSION_SELECTION_STRATEGY
 
-class SourceTransformer:
-    """Takes the Source AST of **a single file** as input and returns the compiled AST."""
-    def __init__(self, sync_functions_dict = {}, incompatibilities = None, version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY):
-        self.sync_functions_dict = sync_functions_dict
-        self.incompatibilities = incompatibilities
-        self.version_selection_strategy = version_selection_strategy
+def transform_module(
+    source_ast: ast.AST,
+    sync_functions_dict: dict,
+    incompatibilities: dict | None,
+    version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY,
+) -> ast.AST:
+    """Transform source AST into the compiled AST (versioned classes only)."""
+    symbol_table = _build_symbol_table(source_ast)
+    versioned_classes_by_name = _group_versioned_classes(source_ast)
+    if not versioned_classes_by_name:
+        return source_ast
 
-    def transform(self, source_ast: ast.AST) -> ast.AST:
-        """Transform Source AST into Python AST."""
+    unified_classes, all_sync_imports = _build_unified_classes(
+        versioned_classes_by_name,
+        sync_functions_dict,
+        incompatibilities,
+        symbol_table,
+        version_selection_strategy,
+    )
 
-        # --- Pass 1: Construct Symbol Table ---
-        symbol_table = SymbolTable()
-        analysis_visitor = SymbolTableBuilder(symbol_table)
-        analysis_visitor.visit(source_ast)
-        logger.no_header_log(symbol_table.get_representation())
+    return _rebuild_module_ast(source_ast, unified_classes, all_sync_imports)
 
-        # --- Pass 2: Group versioned clases ---
-        versioned_classes_by_name: dict[str, list[ast.ClassDef]] = {}
-        for class_node in ast_util.get_all_class_defs(source_ast):
-            class_name, _ = ast_util.get_class_version_info(class_node)
+def contains_versioned_classes(source_ast: ast.AST) -> bool:
+    return bool(_group_versioned_classes(source_ast))
+
+def _build_symbol_table(source_ast: ast.AST) -> SymbolTable:
+    symbol_table = SymbolTable()
+    analysis_visitor = SymbolTableBuilder(symbol_table)
+    analysis_visitor.visit(source_ast)
+    logger.no_header_log(symbol_table.get_representation())
+    return symbol_table
+
+def _group_versioned_classes(source_ast: ast.AST) -> dict[str, list[ast.ClassDef]]:
+    versioned_classes_by_name: dict[str, list[ast.ClassDef]] = {}
+    for class_node in ast_util.get_all_class_defs(source_ast):
+        class_name, _ = ast_util.get_class_version_info(class_node)
+        if class_name:
+            versioned_classes_by_name.setdefault(class_name, []).append(class_node)
+    return versioned_classes_by_name
+
+def _build_unified_classes(
+    versioned_classes_by_name: dict[str, list[ast.ClassDef]],
+    sync_functions_dict: dict,
+    incompatibilities: dict | None,
+    symbol_table: SymbolTable,
+    version_selection_strategy: str,
+) -> tuple[dict[str, ast.ClassDef], list[ast.AST]]:
+    unified_classes: dict[str, ast.ClassDef] = {}
+    all_sync_imports: list[ast.AST] = []
+
+    for class_name in versioned_classes_by_name:
+        state_sync_components = sync_functions_dict.get(class_name, ([], []))
+        incompatibility = incompatibilities.get(class_name) if incompatibilities else None
+
+        sync_imports, _ = state_sync_components
+        all_sync_imports.extend(sync_imports)
+
+        unified_class_ast = build_unified_class(
+            class_name,
+            state_sync_components,
+            symbol_table,
+            incompatibility,
+            version_selection_strategy,
+        )
+        unified_classes[class_name] = unified_class_ast
+
+    return unified_classes, all_sync_imports
+
+def _rebuild_module_ast(
+    source_ast: ast.AST,
+    unified_classes: dict[str, ast.ClassDef],
+    sync_imports: list[ast.AST],
+) -> ast.AST:
+    new_body: list[ast.AST] = []
+    processed_class_names = set()
+
+    final_required_imports = _merge_imports([], sync_imports)
+    new_body.extend(final_required_imports)
+
+    for node in source_ast.body:
+        if isinstance(node, ast.ClassDef):
+            class_name, _ = ast_util.get_class_version_info(node)
             if class_name:
-                versioned_classes_by_name.setdefault(class_name, []).append(class_node)
-        if not versioned_classes_by_name:
-            return source_ast
-        
-        # --- Pass 3: Generate unified class AST from each versioned class group ---
-        unified_classes: dict[str, ast.ClassDef] = {}
-        all_sync_imports = []
-        for class_name, _ in versioned_classes_by_name.items():
-            state_sync_components = self.sync_functions_dict.get(class_name, ([], []))
-            if self.incompatibilities:
-                incompatibility = self.incompatibilities[class_name]
-            else:
-                incompatibility = None
-            
-            sync_imports, _ = state_sync_components
-            all_sync_imports.extend(sync_imports)
-
-            unified_class_ast = build_unified_class(
-                class_name,
-                state_sync_components,
-                symbol_table,
-                incompatibility,
-                self.version_selection_strategy,
-            )
-            unified_classes[class_name] = unified_class_ast
-        
-        # --- Pass 4: Reconstruct the original AST with unified classes ---
-        new_body = []
-        processed_class_names = set()
-
-        final_required_imports = self._merge_imports([], all_sync_imports)
-        new_body.extend(final_required_imports)
-
-        for node in source_ast.body:
-            if isinstance(node, ast.ClassDef):
-                class_name, _ = ast_util.get_class_version_info(node)
-                if class_name:
-                    if class_name not in processed_class_names:
-                        new_body.append(unified_classes[class_name])
-                        processed_class_names.add(class_name)
-                else:
-                    new_body.append(node)
+                if class_name not in processed_class_names:
+                    new_body.append(unified_classes[class_name])
+                    processed_class_names.add(class_name)
             else:
                 new_body.append(node)
-        source_ast.body = new_body
+        else:
+            new_body.append(node)
+    source_ast.body = new_body
 
-        return source_ast
-    
-    # --- HELPER METHODS ---
-    def _merge_imports(self, infra_imports: list[ast.AST], sync_imports: list[ast.AST]) -> list[ast.AST]:
-        merged = {}
-        for imp in infra_imports + sync_imports:
-            key = ast.unparse(imp)
-            if key not in merged:
-                merged[key] = imp
-        return list(merged.values())
+    return source_ast
+
+def _merge_imports(infra_imports: list[ast.AST], sync_imports: list[ast.AST]) -> list[ast.AST]:
+    merged = {}
+    for imp in infra_imports + sync_imports:
+        key = ast.unparse(imp)
+        if key not in merged:
+            merged[key] = imp
+    return list(merged.values())
