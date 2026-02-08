@@ -1,24 +1,32 @@
 from dataclasses import dataclass
-from typing import Literal
+
+from bench_constants import (
+    BenchmarkMode,
+    OutputFormat,
+    DEFAULT_LOOP_COUNT,
+    DEFAULT_REPEAT_COUNT,
+    DEFAULT_OUTPUT_FORMAT,
+)
 
 @dataclass
 class BenchmarkConfig:
     """
     Configuration for running benchmarks.
     """
-    mode: Literal['all', 'single']
+    mode: BenchmarkMode
     
     target_name: str | None
     
-    loop_count: int = 10000
+    loop_count: int = DEFAULT_LOOP_COUNT
     
-    repeat_count: int = 5
+    repeat_count: int = DEFAULT_REPEAT_COUNT
 
 @dataclass
 class OutputConfig:
     """
     Configuration for outputting benchmark results.
     """
-    format: Literal['cli', 'graph'] = 'cli'
+    format: OutputFormat = DEFAULT_OUTPUT_FORMAT
     
     output_path: str | None = None
+    mode: BenchmarkMode | None = None

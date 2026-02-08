@@ -1,12 +1,20 @@
-import sys
 import shutil
 from pathlib import Path
 
+from bench_constants import (
+    LOOP_PLACEHOLDER,
+    MODE_DIR_MAP,
+    MVO_DIR_NAME,
+    SWITCH_LOOP_COUNT,
+    STRATEGY_CONTINUITY,
+    TRANSPILED_DIR_NAME,
+    VANILLA_DIR_NAME,
+)
+from bench_log import log
+from bench_paths import TARGETS_ROOT, ensure_project_root_on_path
 from config import BenchmarkConfig
 
-PROJECT_ROOT = Path(__file__).parent.parent
-TARGETS_BASE_PATH = PROJECT_ROOT / "benchmark" / "targets"
-sys.path.append(str(PROJECT_ROOT))
+ensure_project_root_on_path()
 
 from src.mvo_compiler.mvo_compiler import compile
 
@@ -15,40 +23,39 @@ def _generate_script_from_template(template_path: Path, output_path: Path, loop_
     Generate an executable Python script from a template.
     """
     template_str = template_path.read_text(encoding='utf-8')
-    script_str = template_str.replace('{LOOP_COUNT}', str(loop_count))
+    script_str = template_str.replace(LOOP_PLACEHOLDER, str(loop_count))
     output_path.write_text(script_str, encoding='utf-8')
 
-def prepare_target(target_name: str, result_dir: Path, config: BenchmarkConfig, compile_strategy: str = "continuity") -> bool:
+def prepare_target(target_name: str, result_dir: Path, config: BenchmarkConfig, compile_strategy: str = STRATEGY_CONTINUITY) -> bool:
     """
     Prepare the specified benchmark target.
     """
-    if config.mode == 'gradual':
-        base_path = TARGETS_BASE_PATH / "gradual_overhead"
-    elif config.mode == 'suite':
-        base_path = TARGETS_BASE_PATH / "suite"
-    elif config.mode == 'switch':
-        base_path = TARGETS_BASE_PATH / "switch_count"
+    log(f"Preparing files: target={target_name}, mode={config.mode}, strategy={compile_strategy}")
+    base_path = TARGETS_ROOT / MODE_DIR_MAP[config.mode]
 
     target_path = base_path / target_name
 
     if config.mode == 'gradual' or config.mode == 'suite':
-        mvo_source_path = target_path / "mvo"
-        vanilla_source_path = target_path / "vanilla"
+        mvo_source_path = target_path / MVO_DIR_NAME
+        vanilla_source_path = target_path / VANILLA_DIR_NAME
 
         if not mvo_source_path.is_dir() or not vanilla_source_path.is_dir():
-            print(f"Error: Benchmark target '{target_name}' is incomplete.")
+            log(f"Error: Benchmark target '{target_name}' is incomplete.")
             return False
 
-        transpiled_run_path = result_dir / "transpiled"
-        vanilla_run_path = result_dir / "vanilla"
+        transpiled_run_path = result_dir / TRANSPILED_DIR_NAME
+        vanilla_run_path = result_dir / VANILLA_DIR_NAME
         transpiled_run_path.mkdir(parents=True)
         vanilla_run_path.mkdir(parents=True)
         
         # 1. Transpile & Copy
+        log(f"  Transpile: {mvo_source_path} -> {transpiled_run_path}")
         compile(mvo_source_path, transpiled_run_path)
+        log(f"  Copy: {vanilla_source_path} -> {vanilla_run_path}")
         shutil.copytree(vanilla_source_path, vanilla_run_path, dirs_exist_ok=True)
         
         # 2. Generate Scripts from templates
+        log(f"  Generate templates (loop={config.loop_count})")
         _generate_script_from_template(
             transpiled_run_path / "main.py", 
             transpiled_run_path / "main.py", 
@@ -62,10 +69,11 @@ def prepare_target(target_name: str, result_dir: Path, config: BenchmarkConfig, 
     else:
         mvo_source_path = target_path
         transpiled_run_path = result_dir
+        log(f"  Transpile: {mvo_source_path} -> {transpiled_run_path}")
         compile(mvo_source_path, transpiled_run_path, version_selection_strategy=compile_strategy)
         _generate_script_from_template(
             transpiled_run_path / "main.py", 
             transpiled_run_path / "main.py", 
-            1
+            SWITCH_LOOP_COUNT
         )
     return True

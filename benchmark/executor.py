@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from typing import Dict
 
+from bench_log import log
 from config import BenchmarkConfig
 
 def _time_execution(script_path: Path, num_repeats: int) -> float:
@@ -11,10 +12,16 @@ def _time_execution(script_path: Path, num_repeats: int) -> float:
     The script is assumed to print the execution time to stdout.
     """
     if not script_path.exists():
+        log(f"Script not found: {script_path}")
         return -1.0
 
     total_duration = 0.0
-    
+    if num_repeats > 1:
+        log(f"Running {script_path.name} x{num_repeats}...")
+    else:
+        log(f"Running {script_path.name}...")
+
+    progress_step = max(1, num_repeats // 10) if num_repeats >= 10 else None
     for i in range(num_repeats):
         try:
             result = subprocess.run(
@@ -25,11 +32,17 @@ def _time_execution(script_path: Path, num_repeats: int) -> float:
                 encoding='utf-8'
             )
             total_duration += float(result.stdout.strip())
-            
+
+            if progress_step is not None and ((i + 1) % progress_step == 0 or (i + 1) == num_repeats):
+                percent = int((i + 1) / num_repeats * 100)
+                log(f"  progress: {i + 1}/{num_repeats} ({percent}%)")
         except (subprocess.CalledProcessError, ValueError) as e:
+            log(f"  execution failed: {e}")
             return -1.0
 
-    return total_duration / num_repeats
+    avg = total_duration / num_repeats
+    log(f"Done: {script_path.name} avg={avg:.6f}s")
+    return avg
 
 
 def execute_and_measure(target_name: str, result_dir: Path, config: BenchmarkConfig) -> Dict:
@@ -53,6 +66,7 @@ def execute_and_measure(target_name: str, result_dir: Path, config: BenchmarkCon
     performance_factor = 0.0
     if transpiled_time > 0 and vanilla_time > 0:
         performance_factor = transpiled_time / vanilla_time
+        log(f"Result: {target_name} factor={performance_factor:.3f}x")
 
     return {
         "name": target_name,
@@ -82,6 +96,7 @@ def execute_and_measure_for_switch_count(target_name: str, result_dir: Path, con
     performance_factor = 0.0
     if continuity_switch_count > 0 and latest_switch_count > 0:
         performance_factor = latest_switch_count / continuity_switch_count
+        log(f"Result: {target_name} switch ratio={performance_factor:.3f}x")
 
     return {
         "name": target_name,

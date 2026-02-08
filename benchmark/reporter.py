@@ -2,9 +2,13 @@ import csv
 import re
 from pathlib import Path
 from typing import Dict
-import matplotlib.pyplot as plt
 
 from config import OutputConfig
+
+
+def _import_matplotlib():
+    import matplotlib.pyplot as plt
+    return plt
 
 
 def report_results_switch(csv_path: Path):
@@ -38,6 +42,7 @@ def report_results_switch(csv_path: Path):
     ratio = [t[3] for t in rows]
     x = list(range(len(names)))
 
+    plt = _import_matplotlib()
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Bars: ratio (no legend entry)
@@ -137,6 +142,7 @@ def _report_to_suite_bar_graph(results: list[Dict], csv_path: Path):
     factors = [r['performance_factor'] for r in sorted_results]
 
     # 2. グラフを描画
+    plt = _import_matplotlib()
     fig, ax = plt.subplots(figsize=(10, 6))
     
     ax.bar(target_names, factors, color='white', edgecolor='black', hatch='xx', linewidth=1.0)
@@ -187,6 +193,7 @@ def _report_to_gradual_line_graph(results: list[Dict], csv_path: Path):
     x_values = [d['x'] for d in sorted_data]
     y_values = [d['y'] for d in sorted_data]
     # 2. 折れ線グラフを描画
+    plt = _import_matplotlib()
     fig, ax = plt.subplots(figsize=(10, 6))
     # X軸とY軸に、カテゴリ名ではなく、数値のリストを渡す
     ax.plot(x_values, y_values, marker='o', linestyle='-', color='dodgerblue')
