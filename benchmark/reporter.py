@@ -111,11 +111,14 @@ def report_results(csv_path: Path, config: OutputConfig):
         reader = csv.DictReader(f)
         results = [row for row in reader]
 
-    _report_to_cli(results)
+    mode = getattr(config, 'mode', 'suite')
+    _report_to_cli(results, mode)
 
     if config.format == 'graph':
-        if getattr(config, 'mode', 'suite') == 'gradual':
+        if mode == 'gradual':
             _report_to_gradual_line_graph(results, csv_path)
+        elif mode == 'perf_overhead':
+            _report_to_perf_overhead_bar_graph(results, csv_path)
         else:
             _report_to_suite_bar_graph(results, csv_path)
 
@@ -215,7 +218,65 @@ def _report_to_gradual_line_graph(results: list[Dict], csv_path: Path):
     plt.savefig(output_path, format="pdf")
     plt.show()
 
-def _report_to_cli(results: list[Dict]):
+def _report_to_perf_overhead_bar_graph(results: list[Dict], csv_path: Path):
+
+    # 1. データを準備し、スループット倍率を計算
+    valid_results = []
+    for r in results:
+        t_time = float(r['transpiled_time'])
+        v_time = float(r['vanilla_time'])
+        if t_time > 0 and v_time > 0:
+            # 'throughput_ratio' (Python を 1.0 としたスループット倍率)
+            r['throughput_ratio'] = v_time / t_time
+            valid_results.append(r)
+
+    # スループット倍率で昇順にソート（遅い順）
+    sorted_results = sorted(valid_results, key=lambda r: r['throughput_ratio'])
+
+    if not sorted_results:
+        return
+
+    # グラフ描画用にデータを抽出
+    target_names = [r['name'] for r in sorted_results]
+    ratios = [r['throughput_ratio'] for r in sorted_results]
+
+    # 2. グラフを描画
+    plt = _import_matplotlib()
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    ax.bar(target_names, ratios, color='white', edgecolor='black', hatch='xx', linewidth=1.0)
+
+    ax.set_xlabel('Benchmarks', fontsize=16)
+    ax.set_ylabel('Average throughput\nrelative to Python', fontsize=16)
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='y', labelsize=16)
+
+    # Y軸の目盛りは 0.0〜1.0 を 0.2 刻みで固定（表示ラベル）
+    tick_values = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    ax.set_yticks(tick_values)
+    ax.set_yticklabels(['0'] + [f"{v:.1f}" for v in tick_values[1:]])
+    ax.set_ylim(bottom=0.0)
+
+    # 0.1 刻みの補助目盛りを追加（ラベルなし）
+    minor_ticks = [i / 10 for i in range(1, 10) if i % 2 == 1]
+    ax.set_yticks(minor_ticks, minor=True)
+
+    # 主要・補助の水平線
+    ax.grid(which='major', axis='y', linestyle='-', alpha=0.25, linewidth=0.8)
+    ax.grid(which='minor', axis='y', linestyle='-', alpha=0.12, linewidth=0.6)
+
+    # Y軸の基準線を 1.0 (vanillaと同じスループット) に引く
+    ax.axhline(y=1.0, color='black', linestyle='--', linewidth=1.2)
+
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    # 3. グラフをファイルに保存
+    output_path = csv_path.parent / "perf_overhead_results.pdf"
+    plt.savefig(output_path, format="pdf")
+    plt.show()
+
+def _report_to_cli(results: list[Dict], mode: str):
     """ベンチマーク結果をCLIに表示する。"""
     print("\n\n--- Benchmark Summary ---")
     for result in results:
@@ -228,5 +289,9 @@ def _report_to_cli(results: list[Dict]):
         print(f"  Vanilla Python:   {v_time:.6f} seconds")
 
         if t_time > 0 and v_time > 0:
-            performance_factor = t_time / v_time
-            print(f"  Factor: {performance_factor:.2f}x slower")
+            if mode == 'perf_overhead':
+                throughput_ratio = v_time / t_time
+                print(f"  Throughput: {throughput_ratio:.2f}x of Python")
+            else:
+                performance_factor = t_time / v_time
+                print(f"  Factor: {performance_factor:.2f}x slower")
