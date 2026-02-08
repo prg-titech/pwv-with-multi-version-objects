@@ -3,13 +3,28 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOT = PROJECT_ROOT / "test"
-SAMPLES_ROOT = TEST_ROOT / "resources" / "samples"
-EXPECTED_ROOT = TEST_ROOT / "resources" / "expected_output"
+RESOURCES_ROOT = TEST_ROOT / "resources"
 
 # File template for the test case
 MAIN_PY_TEMPLATE = """
+# versioned class definitions must be in the same file
+class Example__1__:
+    def __init__(self, x: int):
+        self.x = x
+
+    def value(self):
+        return self.x
+
+class Example__2__:
+    def __init__(self, y: int):
+        self.y = y
+
+    def value(self):
+        return self.y * 2
+
 def main():
-    # Some main logic here
+    obj = Example__1__(10)
+    print(obj.value())
 
 if __name__ == "__main__":
     main()
@@ -23,8 +38,14 @@ def create_test_case(test_case_path: str):
     log(f"--- Creating new test case: {test_case_path} ---")
 
     # --- 1. Create directories for input and expected output ---
-    input_dir = SAMPLES_ROOT / test_case_path
-    expected_file = (EXPECTED_ROOT / test_case_path).with_suffix('.txt')
+    raw_path = Path(test_case_path)
+    if raw_path.name.startswith("TEST_"):
+        case_dir = RESOURCES_ROOT / raw_path
+    else:
+        case_dir = RESOURCES_ROOT / raw_path.parent / f"TEST_{raw_path.name}"
+
+    input_dir = case_dir / "sources"
+    expected_file = case_dir / "outputs" / "output.txt"
     expected_parent_dir = expected_file.parent
 
 
@@ -70,7 +91,7 @@ def main():
     )
     parser.add_argument(
         "test_case_path",
-        help="The relative path for the new test case (e.g., 'features/fields/01_access')."
+        help="The relative path for the new test case (e.g., 'basic_cases/TEST_basic_01' or 'features/attr/01_basic')."
     )
     args = parser.parse_args()
     

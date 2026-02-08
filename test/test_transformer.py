@@ -3,8 +3,7 @@ from pathlib import Path
 from mvo_compiler.mvo_compiler import compile, execute
 
 TEST_ROOT = Path(__file__).resolve().parent
-SAMPLES_ROOT = TEST_ROOT / "resources" / "samples"
-EXPECTED_ROOT = TEST_ROOT / "resources" / "expected_output"
+RESOURCES_ROOT = TEST_ROOT / "resources"
 
 def test_transpilation_and_execution(input_dir: Path, tmp_path: Path):
     """
@@ -14,8 +13,8 @@ def test_transpilation_and_execution(input_dir: Path, tmp_path: Path):
     The "input_dir" argument is dynamically provided by conftest.py.
     """
     # --- 1. Arrange ---
-    relative_path = input_dir.relative_to(SAMPLES_ROOT)
-    expected_output_file = (EXPECTED_ROOT / relative_path.parent).joinpath(relative_path.name + ".txt")
+    input_dir = input_dir / "sources"
+    expected_output_file = input_dir.parent / "outputs" / "output.txt"
     assert expected_output_file.exists(), f"Expected output file not found: {expected_output_file}"
         
     expected_output = expected_output_file.read_text(encoding="utf-8")

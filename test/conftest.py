@@ -4,8 +4,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOT = PROJECT_ROOT / "test"
-SAMPLES_ROOT = TEST_ROOT / "resources" / "samples"
-EXPECTED_ROOT = TEST_ROOT / "resources" / "expected_output"
+RESOURCES_ROOT = TEST_ROOT / "resources"
 
 def pytest_addoption(parser):
     """Adds the --target_dir command-line option to pytest."""
@@ -22,24 +21,28 @@ def pytest_generate_tests(metafunc):
     if "input_dir" in metafunc.fixturenames:
         target_path_str = metafunc.config.getoption("--target_dir")
         
-        search_root = SAMPLES_ROOT
+        search_root = RESOURCES_ROOT
         if target_path_str:
-            search_root = SAMPLES_ROOT / target_path_str
+            search_root = RESOURCES_ROOT / target_path_str
 
         if not search_root.is_dir():
             pytest.fail(f"Test case directory not found: {search_root}")
 
-        # Collect directories that contain Python files
-        main_py_files = list(search_root.glob("**/main.py"))
-        test_case_dirs = [p.parent for p in main_py_files]
+        # Collect test case directories: resources/**/TEST_*/{sources, outputs}
+        test_case_dirs = [
+            p for p in search_root.glob("**/TEST_*")
+            if p.is_dir()
+            and (p / "sources").is_dir()
+            and (p / "outputs").is_dir()
+        ]
         if not test_case_dirs:
-            pytest.fail(f"No test cases (directories with a main.py) found in {search_root}")
+            pytest.fail(f"No test cases (directories with sources/outputs) found in {search_root}")
 
         # Parametrize the test function with the collected directories
         metafunc.parametrize(
             "input_dir", 
             test_case_dirs, 
-            ids=[str(p.relative_to(SAMPLES_ROOT)) for p in test_case_dirs]
+            ids=[str(p.relative_to(RESOURCES_ROOT)) for p in test_case_dirs]
         )
 
 DEBUG_MODE = False
