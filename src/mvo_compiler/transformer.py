@@ -2,7 +2,7 @@ import ast
 
 from .util import ast_util
 from .symbol_table.symbol_table import SymbolTable
-from .builder.unified_class_builder import UnifiedClassBuilder
+from .builder.unified_class_builder import build_unified_class
 from .symbol_table.symbol_table_builder import SymbolTableBuilder
 from .util import logger
 from .util.constants import DEFAULT_VERSION_SELECTION_STRATEGY
@@ -45,8 +45,13 @@ class SourceTransformer:
             sync_imports, _ = state_sync_components
             all_sync_imports.extend(sync_imports)
 
-            builder = UnifiedClassBuilder(class_name, state_sync_components, symbol_table, incompatibility, self.version_selection_strategy)
-            unified_class_ast = builder.build()
+            unified_class_ast = build_unified_class(
+                class_name,
+                state_sync_components,
+                symbol_table,
+                incompatibility,
+                self.version_selection_strategy,
+            )
             unified_classes[class_name] = unified_class_ast
         
         # --- Pass 4: Reconstruct the original AST with unified classes ---
