@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Dict, Optional, Set, Tuple
 
 from .util import logger
+from .util.constants import (
+    PROJECT_SYNC_MODULES_KEY,
+    PROJECT_INCOMPATIBILITIES_KEY,
+    PROJECT_NORMAL_FILES_KEY,
+)
 
 def create_project_structure(input_dir: Path) -> Dict:
     """
@@ -13,9 +18,9 @@ def create_project_structure(input_dir: Path) -> Dict:
     3. Classify files into (normal files, state transfromation functions, incompatibilities)
     """
     project_structure = {
-        "sync_modules": {},
-        "incompatibilities": {},
-        "normal_files": []
+        PROJECT_SYNC_MODULES_KEY: {},
+        PROJECT_INCOMPATIBILITIES_KEY: {},
+        PROJECT_NORMAL_FILES_KEY: []
     }
 
     py_files = list(input_dir.glob("**/*.py"))
@@ -35,7 +40,7 @@ def create_project_structure(input_dir: Path) -> Dict:
             with open(source_file, 'r', encoding='utf-8') as f:
                 source_code = f.read()
             relative_path = source_file.relative_to(input_dir)
-            project_structure["normal_files"].append((relative_path, ast.parse(source_code)))
+            project_structure[PROJECT_NORMAL_FILES_KEY].append((relative_path, ast.parse(source_code)))
         except Exception as e:
             logger.error_log(f"Failed to parse {source_file}: {e}")
 
@@ -47,7 +52,7 @@ def create_project_structure(input_dir: Path) -> Dict:
             with open(state_transformation_file, 'r', encoding='utf-8') as f:
                 source_code = f.read()
             base_name = sync_match.group(1)
-            project_structure["sync_modules"][base_name] = _parse_sync_modules(base_name, source_code)
+            project_structure[PROJECT_SYNC_MODULES_KEY][base_name] = _parse_sync_modules(base_name, source_code)
         except Exception as e:
             logger.error_log(f"Failed to parse {state_transformation_file}: {e}")
 
@@ -56,7 +61,7 @@ def create_project_structure(input_dir: Path) -> Dict:
         try:
             incompatibilities = _parse_incompatibility_json(incompatibilities_file)
             if incompatibilities:
-                project_structure["incompatibilities"].update(incompatibilities)
+                project_structure[PROJECT_INCOMPATIBILITIES_KEY].update(incompatibilities)
         except Exception as e:
             logger.error_log(f"Failed to parse {incompatibilities_file}: {e}")
 

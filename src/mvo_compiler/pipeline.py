@@ -9,6 +9,11 @@ from .transformer import transform_module, contains_versioned_classes
 from .scanner import create_project_structure
 from .util import logger
 from .util.constants import DEFAULT_VERSION_SELECTION_STRATEGY
+from .util.constants import (
+    PROJECT_SYNC_MODULES_KEY,
+    PROJECT_INCOMPATIBILITIES_KEY,
+    PROJECT_NORMAL_FILES_KEY,
+)
 
 def compile_project(
     input_dir: Path,
@@ -51,12 +56,12 @@ def transform_project(
     if project_structure is None:
         project_structure = create_project_structure(input_dir)
     logger.success_log(
-        f"Found {len(project_structure['sync_modules'])} sync modules and {len(project_structure['normal_files'])} normal files in {input_dir}."
+        f"Found {len(project_structure[PROJECT_SYNC_MODULES_KEY])} sync modules and {len(project_structure[PROJECT_NORMAL_FILES_KEY])} normal files in {input_dir}."
     )
     logger.success_log(f"Completed parsing and classifying files in {input_dir}.")
 
     out: list[tuple[Path, ast.AST]] = []
-    for rel_path, tree in project_structure['normal_files']:
+    for rel_path, tree in project_structure[PROJECT_NORMAL_FILES_KEY]:
         if not contains_versioned_classes(tree):
             logger.debug_log(f"Skipping transform (no versioned classes): {rel_path}")
             out.append((rel_path, tree))
@@ -65,8 +70,8 @@ def transform_project(
         try:
             transformed_ast = transform_module(
                 tree,
-                project_structure['sync_modules'],
-                project_structure['incompatibilities'],
+                project_structure[PROJECT_SYNC_MODULES_KEY],
+                project_structure[PROJECT_INCOMPATIBILITIES_KEY],
                 version_selection_strategy,
             )
         except Exception as e:
