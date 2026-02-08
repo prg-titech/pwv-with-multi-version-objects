@@ -4,6 +4,7 @@ from .symbol_table import SymbolTable
 from .class_info import ClassInfo
 from .method_info import MethodInfo, ParameterInfo
 from ..util.ast_util import get_class_version_info, get_class_version_info_from_name, UNVERSIONED_CLASS_TAG
+from ..util.constants import INITIALIZE_METHOD_NAME
 
 class SymbolTableBuilder(ast.NodeVisitor):
     """
@@ -47,8 +48,8 @@ class SymbolTableBuilder(ast.NodeVisitor):
             if isinstance(member, ast.FunctionDef):
                 method_info = self._create_method_info(member, version)
                 if member.name == '__init__' and is_versioned:
-                    method_info.name = '__initialize__'
-                    method_info.ast_node.name = '__initialize__'
+                    method_info.name = INITIALIZE_METHOD_NAME
+                    method_info.ast_node.name = INITIALIZE_METHOD_NAME
                 methods_map.setdefault(method_info.name, []).append(method_info)
 
         class_info = ClassInfo(

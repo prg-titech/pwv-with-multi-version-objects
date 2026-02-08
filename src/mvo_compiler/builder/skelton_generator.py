@@ -8,6 +8,7 @@ from ..util.ast_util import *
 from ..util.template_util import TemplateRenamer
 from ..util.template_util import load_template_ast
 from ..util import logger
+from ..util.constants import SWITCH_COUNT_ATTR_NAME
 
 _SWITCH_TO_VERSION_TEMPLATE = "switch_to_version_template.py"
 
@@ -38,7 +39,7 @@ class SkeltonGenerator:
 
         # Temp: inject _switch_count attribute
         switch_count_attr = ast.Assign(
-            targets=[ast.Name(id='_switch_count', ctx=ast.Store())],
+            targets=[ast.Name(id=SWITCH_COUNT_ATTR_NAME, ctx=ast.Store())],
             value=ast.Constant(value=0)
         )
         self.target_class.body.insert(0, switch_count_attr)

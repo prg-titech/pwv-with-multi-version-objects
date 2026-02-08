@@ -7,17 +7,18 @@ from ..symbol_table.symbol_table import SymbolTable
 from ..util.template_util import get_template_string
 from ..util.ast_util import get_switch_to_version_method_name
 from ..util import logger
+from ..util.constants import DEFAULT_VERSION_SELECTION_STRATEGY
 
 class UnifiedClassBuilder:
     """
     Orchestrates the transformation of versioned classes' ASTs into a single, unified class AST.
     """
-    def __init__(self, class_name: str, state_sync_components: tuple, symbol_table: SymbolTable, incompatibility: dict = None, version_selection_strategy: str = "continuity"):
+    def __init__(self, class_name: str, state_sync_components: tuple, symbol_table: SymbolTable, incompatibility: dict = None, version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY):
         self.class_name = class_name
         self.state_sync_components = state_sync_components
         self.incompatibility = incompatibility
         self.symbol_table = symbol_table
-        self.version_selection_strategy = version_selection_strategy # continuity | latest
+        self.version_selection_strategy = version_selection_strategy
         self.new_class_ast: ast.ClassDef = None
 
     def build(self) -> ast.ClassDef:

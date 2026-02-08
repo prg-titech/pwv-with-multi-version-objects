@@ -5,6 +5,7 @@ from ..util.ast_util import *
 from ..util.template_util import load_template_ast, TemplateRenamer
 from ..util.builder_util import _create_slow_path_dispatcher
 from ..util import logger
+from ..util.constants import INITIALIZE_METHOD_NAME
 
 _CONSTRUCTOR_TEMPLATE = "constructor_template.py"
 
@@ -27,11 +28,11 @@ class ConstructorGenerator:
 
         # 1. Retrieve information for the __initialize__ method from the symbol table
         class_info = self.symbol_table.lookup_class(self.class_name)
-        initialize_overloads = class_info.methods.get('__initialize__', [])
+        initialize_overloads = class_info.methods.get(INITIALIZE_METHOD_NAME, [])
 
         # 2. Create a slow path dispatcher (if-elif chain)
         slow_path_body = _create_slow_path_dispatcher(
-            self.class_name, '__initialize__', initialize_overloads
+            self.class_name, INITIALIZE_METHOD_NAME, initialize_overloads
         )
         if not slow_path_body:
             slow_path_body.append(ast.Pass())

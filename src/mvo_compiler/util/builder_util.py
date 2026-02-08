@@ -2,6 +2,7 @@ import ast
 
 from ..symbol_table.method_info import MethodInfo, ParameterInfo
 from ..util.ast_util import *
+from ..util.constants import WRAPPER_SELF_ARG_NAME
 
 def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: list[MethodInfo]) -> list[ast.AST]:
     """
@@ -32,7 +33,7 @@ def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: l
                 ),
                 args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],
                 keywords=[
-                    ast.keyword(arg='_wrapper_self', value=ast.Name(id='self', ctx=ast.Load())),
+                    ast.keyword(arg=WRAPPER_SELF_ARG_NAME, value=ast.Name(id='self', ctx=ast.Load())),
                     ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))
                 ]
             ))

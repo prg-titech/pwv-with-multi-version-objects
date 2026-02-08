@@ -1,5 +1,11 @@
 from pathlib import Path
 from . import logger
+from .constants import (
+    TEMPLATE_CURRENT_STATE_ATTR,
+    TEMPLATE_VERSION_SINGLETON_ATTR,
+    TEMPLATE_SWITCH_TO_VERSION_FUNC,
+    TEMPLATE_SYNC_CALL_PLACEHOLDER,
+)
 import ast
 
 _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
@@ -51,21 +57,21 @@ class TemplateRenamer(ast.NodeTransformer):
 
     def visit_Attribute(self, node):
         node = self.generic_visit(node)
-        if node.attr == '_CURRENT_STATE_PLACEHOLDER':
+        if node.attr == TEMPLATE_CURRENT_STATE_ATTR:
             node.attr = f'_{self.class_name.lower()}_current_state'
-        elif node.attr == '_VERSION_INSTANCES_SINGLETON_PLACEHOLDER':
+        elif node.attr == TEMPLATE_VERSION_SINGLETON_ATTR:
             node.attr = f'_{self.class_name.upper()}_VERSION_INSTANCES_SINGLETON'
         return node
     
     def visit_FunctionDef(self, node):
         node = self.generic_visit(node)
-        if node.name == '_SWITCH_TO_VERSION_PLACEHOLDER':
+        if node.name == TEMPLATE_SWITCH_TO_VERSION_FUNC:
             node.name = f'_{self.class_name.lower()}_switch_to_version'
         return node
 
     def visit_Assign(self, node):
         node = self.generic_visit(node)
-        if isinstance(node.targets[0], ast.Name) and node.targets[0].id == '_SYNC_CALL_PLACEHOLDER_':
+        if isinstance(node.targets[0], ast.Name) and node.targets[0].id == TEMPLATE_SYNC_CALL_PLACEHOLDER:
             if self.sync_dispatch_chain:
                 node = self.sync_dispatch_chain
             else:

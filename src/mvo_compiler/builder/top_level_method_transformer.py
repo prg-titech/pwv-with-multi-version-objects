@@ -2,8 +2,7 @@ import ast
 
 from ..util.ast_util import *
 from ..util import logger
-
-_WRAPPER_SELF_ARG_NAME = '_wrapper_self'
+from ..util.constants import WRAPPER_SELF_ARG_NAME
 
 class TopLevelMethodTransformer(ast.NodeTransformer):
     """
@@ -30,7 +29,7 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
         self.top_level_self_name = node.args.args[0].arg
 
         # 1. Add `_wrapper_self` to the method signature
-        wrapper_self_arg = ast.arg(arg=_WRAPPER_SELF_ARG_NAME)
+        wrapper_self_arg = ast.arg(arg=WRAPPER_SELF_ARG_NAME)
         if not node.args.kwonlyargs: node.args.kwonlyargs = []
         if not node.args.kw_defaults: node.args.kw_defaults = []
         node.args.kwonlyargs.append(wrapper_self_arg)
@@ -41,14 +40,14 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
         #        self = _wrapper_self
         conditional_rebind_stmt = ast.If(
             test=ast.Compare(
-                left=ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=ast.Load()),
+                left=ast.Name(id=WRAPPER_SELF_ARG_NAME, ctx=ast.Load()),
                 ops=[ast.IsNot()],
                 comparators=[ast.Constant(value=None)]
             ),
             body=[
                 ast.Assign(
                     targets=[ast.Name(id=self.top_level_self_name, ctx=ast.Store())],
-                    value=ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
+                    value=ast.Name(id=WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
                 )
             ],
             orelse=[]
@@ -85,7 +84,7 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
                 if parent_type == 'normal':
                     node.args = [
                         ast.Name(id=self.class_name, ctx=ast.Load()),
-                        ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
+                        ast.Name(id=WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
                     ]
                 
                 elif parent_type == 'mvo':
@@ -94,7 +93,7 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
                     
                     node.args = [
                         ast.Attribute(value=ast.Name(id=parent_base_name, ctx=ast.Load()), attr=parent_impl_name, ctx=ast.Load()),
-                        ast.Name(id=_WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
+                        ast.Name(id=WRAPPER_SELF_ARG_NAME, ctx=ast.Load())
                     ]
             elif len(node.args) == 2: # super(type, obj)
                 logger.warning_log(f"super() with two arguments found in top-level method of versioned class '{self.class_name}'.")

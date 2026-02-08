@@ -5,13 +5,14 @@ from .symbol_table.symbol_table import SymbolTable
 from .builder.unified_class_builder import UnifiedClassBuilder
 from .symbol_table.symbol_table_builder import SymbolTableBuilder
 from .util import logger
+from .util.constants import DEFAULT_VERSION_SELECTION_STRATEGY
 
 class SourceTransformer:
     """Takes the Source AST of **a single file** as input and returns the compiled AST."""
-    def __init__(self, sync_functions_dict = {}, incompatibilities = None, version_selection_strategy: str = "continuity"):
+    def __init__(self, sync_functions_dict = {}, incompatibilities = None, version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY):
         self.sync_functions_dict = sync_functions_dict
         self.incompatibilities = incompatibilities
-        self.version_selection_strategy = version_selection_strategy # continuity | latest
+        self.version_selection_strategy = version_selection_strategy
 
     def transform(self, source_ast: ast.AST) -> ast.AST:
         """Transform Source AST into Python AST."""

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from mvo_compiler.mvo_compiler import compile, execute
 from mvo_compiler.util import logger
+from mvo_compiler.util.constants import DEFAULT_VERSION_SELECTION_STRATEGY, VERSION_SELECTION_STRATEGIES
 
 INPUT_BASE_PATH = Path("test/resources/samples")
 OUTPUT_BASE_PATH = Path("output")
@@ -13,8 +14,8 @@ def main():
     parser.add_argument("target_dir", help="Path to the test case directory (e.g., simple_cases/01).")
     parser.add_argument(
         "--strategy",
-        choices=["continuity", "latest"],
-        default="continuity",
+        choices=list(VERSION_SELECTION_STRATEGIES),
+        default=DEFAULT_VERSION_SELECTION_STRATEGY,
         help="Version selection strategy (default: continuity).",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging.")

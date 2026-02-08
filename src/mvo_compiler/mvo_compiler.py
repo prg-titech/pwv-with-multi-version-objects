@@ -8,12 +8,13 @@ from pathlib import Path
 from .transformer import SourceTransformer
 from .scanner import create_project_structure
 from .util import logger
+from .util.constants import DEFAULT_VERSION_SELECTION_STRATEGY
 
 def compile(
         input_dir: Path,
         output_dir: Path,
         *,
-        version_selection_strategy: str = "continuity", # continuity | latest
+        version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY,
         delete_output_dir: bool = True
 ) -> None:
     """

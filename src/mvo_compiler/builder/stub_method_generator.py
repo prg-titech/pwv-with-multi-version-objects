@@ -6,12 +6,18 @@ from ..symbol_table.method_info import MethodInfo
 
 from ..util.ast_util import *
 from ..util.builder_util import _create_slow_path_dispatcher
+from ..util.constants import (
+    DEFAULT_VERSION_SELECTION_STRATEGY,
+    INITIALIZE_METHOD_NAME,
+    VERSION_SELECTION_LATEST,
+    WRAPPER_SELF_ARG_NAME,
+)
 
 class StubMethodGenerator:
     """
     Generates stub methods for the unified class based on the symbol table.
     """
-    def __init__(self, target_class: ast.ClassDef, symbol_table: SymbolTable, base_name: str, version_selection_strategy: str = "continuity"):
+    def __init__(self, target_class: ast.ClassDef, symbol_table: SymbolTable, base_name: str, version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY):
         self.target_class = target_class
         self.symbol_table = symbol_table
         self.base_name = base_name
@@ -24,7 +30,7 @@ class StubMethodGenerator:
             return
         
         for method_name, overloads in class_info.methods.items():
-            if method_name == '__initialize__':
+            if method_name == INITIALIZE_METHOD_NAME:
                 continue
         
             if class_info.has_consistent_signature(method_name):
@@ -54,7 +60,7 @@ class StubMethodGenerator:
         )
 
         # 1.5
-        if self.version_selection_strategy == "latest":
+        if self.version_selection_strategy == VERSION_SELECTION_LATEST:
             # self.current_state.version_num
             current_version_num_ast = ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(self.base_name), ctx=ast.Load()), 
                                                 attr='_version_number',
@@ -88,7 +94,7 @@ class StubMethodGenerator:
         # 2. Create AST for fast path (try block)
         call_args = []
         call_keywords = [
-            ast.keyword(arg='_wrapper_self', value=ast.Name(id='self', ctx=ast.Load()))
+            ast.keyword(arg=WRAPPER_SELF_ARG_NAME, value=ast.Name(id='self', ctx=ast.Load()))
         ]
 
         for param in method_info.parameters:
@@ -153,7 +159,7 @@ class StubMethodGenerator:
         )
 
         # 1.5
-        if self.version_selection_strategy == "latest":
+        if self.version_selection_strategy == VERSION_SELECTION_LATEST:
             # self.current_state.version_num
             current_version_num_ast = ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(self.base_name), ctx=ast.Load()), 
                                                 attr='_version_number',
@@ -192,7 +198,7 @@ class StubMethodGenerator:
             ),
             args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],
             keywords=[
-                ast.keyword(arg='_wrapper_self', value=ast.Name(id='self', ctx=ast.Load())),
+                ast.keyword(arg=WRAPPER_SELF_ARG_NAME, value=ast.Name(id='self', ctx=ast.Load())),
                 ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))
             ]
         ))]
