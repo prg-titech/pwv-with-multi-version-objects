@@ -37,6 +37,23 @@ source .venv/bin/activate
 deactivate
 ```
 
+### ベンチマーク用の別環境（推奨）
+
+ベンチマークは本体とは別の仮想環境で実行できます。`bench` 依存グループを用意しているので、専用の venv を作って同期してください。
+
+```bash
+# ベンチマーク用の仮想環境を作成
+uv venv .venv-bench
+
+# アクティベート
+.venv-bench\Scripts\activate
+
+# ベンチマーク依存のみ同期
+uv sync --group bench --active
+```
+
+通常の環境に追加したい場合は、既存の venv で `uv sync --group bench --active` を実行してください。
+
 ## 実行方法
 
 ### 手動実行
