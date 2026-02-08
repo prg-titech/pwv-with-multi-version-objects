@@ -12,6 +12,7 @@ pytestdebug.log*
 
 # Virtual environments
 .venv
+.venv-bench/
 
 # vscode settings
 .vscode/
