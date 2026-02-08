@@ -1,46 +1,39 @@
-# PWV with Multi-Version Objects
+﻿# PWV with Multi-Version Objects
 
-## Overview
+## 概要
 
-This project is a proof-of-concept (PoC) transpiler for PWV with Multi-Version Objects.
+本プロジェクトは、論文で提案する「PWV with Multi-Version Objects (MVO)」の PoC トランスパイラです。Python の AST を解析し、バージョン付きクラス群を統合クラスに変換して実行します。
 
-## How It Works
+## 仕組み
 
-The transpiler orchestrates a full transpile-and-run pipeline, driven by the main entry point (`main.py`).
+1. Parse: 入力ディレクトリ配下の .py を AST 化し、_sync.py を同期モジュールとして分類します。 .json も読み込みます。
+2. Transform:
+- SymbolTable 構築: クラス/メソッド/継承関係を収集します。
+- UnifiedClassBuilder: バージョン付きクラスを統合クラスへ変換します（State パターン）。
+3. Generate: AST を Python ソースに戻し、出力ディレクトリに書き出します。
+4. Execute: 生成された main.py を実行します（main.py 経由の場合）。
 
-1.  **Parse**: Parses all `.py` files within a specified test case directory into ASTs using the `ast` module.
-2.  **Transform**: Traverses and transforms the ASTs in multiple passes:
-    -   **Pass 1 (`SymbolTableBuilderVisitor`):** Builds a `SymbolTable` containing information about all classes, methods, fields, and variables.
-    -   **Pass 2 (`UnifiedClassBuilder`):** Merges the versioned class ASTs (e.g., `Test__1__`, `Test__2__`) into a new, unified class AST that implements the State Pattern.
-3.  **Generate Code**: Converts the final, transformed ASTs back into well-formatted Python source code.
-4.  **Execute**: The test pipeline runs the generated `main.py` to verify its runtime behavior.
+## 要件
 
-## Requirements
+- Python 3.12 以上
+- uv: 高速なパッケージインストーラ/リゾルバ
 
--   Python 3.8 or higher
--   **uv**: A fast Python package installer and resolver. See the [installation guide](https://docs.astral.sh/uv/getting-started/).
-
-## Setup and Running
-
-This project uses **uv** for dependency management and reproducibility.  
-The environment is defined by `pyproject.toml` and `uv.lock`. Both should be committed to Git.
-
-### First-time setup
+## セットアップ
 
 ```bash
-# Pin Python version (creates .python-version)
+# Python バージョン固定 (.python-version を作成)
 uv python pin 3.12
 
-# Install dependencies (creates .venv and uv.lock if missing)
+# 依存関係インストール (.venv と uv.lock が無ければ作成)
 uv sync
 ```
 
-`uv sync` will:
-- Create a virtual environment in .venv
-- Install project dependencies
-- Install the project itself in editable mode (so `src/mvo_compiler` can be imported from anywhere)
+uv sync の内容
+- .venv を作成
+- 依存関係をインストール
+- プロジェクトを editable でインストール（src/mvo_compiler を import 可能にする）
 
-### Activating the Environment
+### 仮想環境の有効化
 
 ```bash
 # macOS/Linux
@@ -53,28 +46,43 @@ source .venv/bin/activate
 deactivate
 ```
 
-### Manual Execution
-You can run the transpiler on a specific test case directory using `main.py`.
+## 実行方法
+
+### 手動実行
+
 ```bash
-# Example: Run the 'basic_cases/basic_01' test case
+# 例: basic_cases/basic_01 を実行
 python main.py basic_cases/basic_01
 
-# Run with debug logs enabled
+# デバッグログを有効化
 python main.py basic_cases/basic_01 --debug
+
+# バージョン選択戦略を指定
+python main.py basic_cases/basic_01 --strategy latest
 ```
 
-### Usage Conventions and Limitations
+- target_dir は test/resources/samples からの相対パスです。
+- strategy は continuity | latest を選択します。
 
-For the transpiler to work correctly, your source code must follow a few specific conventions:
+## 入力形式と暗黙ルール
 
-#### 1. Versioned Class Definitions
+### 1. 入力ディレクトリ
 
-All versions of a class that you intend to unify must be defined within the **same Python file**. Each versioned class must be named with a double-underscore suffix `__<number>__`.
+compile() に渡すディレクトリ配下を再帰的にスキャンします。
+- **/*.py はソースファイル
+- **/*_sync.py は同期モジュール
+- **/*.json は互換性(属性)定義
 
-**Example: `point.py`**
+### 2. バージョン付きクラス
+
+- 同一ベース名のバージョンは同一ファイルに定義します。
+- クラス名は `<BaseName>__<version>__` 形式で、version は整数です。
+- クラス定義はトップレベルメソッドのみを対象にします。
+- クラス属性（AnnAssign/Assign）は無視されます。
+- 内部クラスは未対応です。
+
+**例**
 ```python
-# All versions of 'Point' must be in this single file.
-
 class Point__1__:
     def __init__(self, x: int):
         self.x = x
@@ -84,74 +92,83 @@ class Point__2__:
         self.r = r
 ```
 
-### 2. Synchronization Function Definitions
-If you need to define state transformation logic between versions, you must create a corresponding **synchronization module**.
+### 3. 継承
 
--   **Naming:** The sync module must be named after the base class, with a `_sync` suffix (e.g., `Point_sync.py`).
--   **Location:** No restriction.
+- バージョン付きクラスは通常クラス/バージョン付きクラスを継承できます。
+- `Foo__2__` のようにバージョン付きクラスを継承した場合、バージョン情報も継承関係として記録されます。
 
-Functions within a sync module are used to transform the state from one version to another. They must follow a strict naming convention and signature.
+### 4. 同期モジュール (sync_modules)
 
--   **Naming:** `sync_from_v<source_number>_to_v<target_number>`
--   **Signature:** Each function must accept two arguments: the source implementation instance and the target implementation instance.
+- ファイル名は `<BaseName>_sync.py` です（例: Point_sync.py）。
+- 位置は入力ディレクトリ配下ならどこでも構いません。
+- 同期関数名は `_?sync_from_v<from>_to_v<to>` 形式です。先頭の `_` は任意です。
+- 同期関数の引数は 1 つ（wrapper オブジェクト）です。
+- 同期モジュール内の import 文は統合クラスの先頭へ移されます。
 
-**Example: `Point_sync.py`**
+**例**
 ```python
-def sync_from_v1_to_v2(v1_impl, v2_impl):
-    # This function is called when switching from v1 to v2.
-    # It should read from v1_impl and write to v2_impl.
-    v2_impl.r = v1_impl.x # Example transformation
+def _sync_from_v1_to_v2(wrapper_obj):
+    wrapper_obj._v2 = "Version 2"
+    del wrapper_obj._v1
 ```
 
-## Automated Tests
+### 5. 互換性(属性)定義 JSON
 
-This project features a fully automated test suite powered by **pytest**.
+入力ディレクトリ配下の任意の .json を読み込みます。
 
-### Test Structure
+スキーマ
+```json
+{
+  "<BaseName>": {
+    "<version>": ["attr1", "attr2"]
+  }
+}
+```
 
--   **Input Files (`test/resources/samples/`)**: Each subdirectory (e.g., `basic_cases/basic_01/`) represents a self-contained test case and should include all necessary source files.
+- `<version>` は整数の文字列です。
 
--   **Expected Output (`test/resources/expected_output/`)**: This directory mirrors the parent structure of `samples/`. The expected runtime output for a given test case is stored in a `.txt` file that shares the same name as the test case directory.
-    -   **Example**: The expected output for the test case in `.../samples/basic_cases/basic_01/` should be placed in `.../expected_output/basic_cases/basic_01.txt`.
+### 6. エントリポイント
 
-### Running Tests
+main.py 経由で実行する場合、入力ディレクトリ直下に main.py が存在することを想定します。
 
--   **Run all tests:**
-    ```bash
-    pytest
-    ```
+## テスト
 
--   **Run a specific test case:**
-    Use the `--target_dir` option to specify the relative path to a single test case.
-    ```bash
-    # Runs only the tests in the 'basic_cases/basic_01/' directory
-    pytest --target_dir=basic_cases/basic_01
-    ```
+- 入力サンプル: test/resources/samples/
+- 期待出力: test/resources/expected_output/
 
--   **Run with Debug Logs:**
-    To see the transpiler's internal logging, add the `--debug` flag.
-    ```bash
-    pytest --debug --target_dir=basic_cases/basic_01/
-    ```
+### テストの実行
 
-## Directory Structure
+```bash
+# 全テスト
+pytest
 
-A brief overview of the key directories and files in this project.
+# 特定のテストのみ
+pytest --target_dir=basic_cases/basic_01
+
+# デバッグログ付き
+pytest --debug --target_dir=basic_cases/basic_01
+```
+
+## ディレクトリ構成
 
 ```
 .
-├── main.py                          : The main entry point
+├── main.py
 ├── pyproject.toml
-├── src/                             : Contains all the source code for the transpiler library
-│   └── mvo_compiler/             : The main package for the transpiler
-│       ├── run.py                   
-│       ├── my_lang_transformer.py
-│       ├── builder/                 : A package containing specialized builder classes
-│       ├── symbol_table/            : Contains the data structures for the symbol table
-│       └── util/                    : Contains shared helper modules like the `logger`
-└── tests/                           : Contains all files related to the test suite
+├── src/
+│   └── mvo_compiler/
+│       ├── mvo_compiler.py
+│       ├── scanner.py
+│       ├── transformer.py
+│       ├── builder/
+│       ├── symbol_table/
+│       ├── util/
+│       └── templates/
+└── test/
+    ├── conftest.py
+    ├── test_create.py
     ├── test_transformer.py
-    └── resources/                   : Holds all the data required for the tests
-        ├── samples/                 : Contains the input `.py` source files for each test case
-        └── expected_output/         : Contains the expected output for each corresponding test case
+    └── resources/
+        ├── samples/
+        └── expected_output/
 ```
