@@ -1,4 +1,4 @@
-﻿@[ATTR].setter
+@[ATTR].setter
 def [ATTR](self, value):
     try:
         self._[ATTR]

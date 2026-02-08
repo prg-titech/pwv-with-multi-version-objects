@@ -22,7 +22,7 @@ def get_template_string(template_filename: str) -> str | None:
     """
     template_path = _TEMPLATE_DIR / template_filename
     try:
-        with open(template_path, 'r', encoding='utf-8') as f:
+        with open(template_path, 'r', encoding='utf-8-sig') as f:
             return f.read()
     except FileNotFoundError:
         logger.error_log(f"Template file not found at: {template_path}")

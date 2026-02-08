@@ -1,4 +1,4 @@
-﻿@property
+@property
 def [ATTR](self):
     try:
         return self._[ATTR]
