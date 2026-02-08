@@ -35,7 +35,7 @@ def prepare_target(target_name: str, result_dir: Path, config: BenchmarkConfig, 
 
     target_path = base_path / target_name
 
-    if config.mode == 'gradual' or config.mode == 'suite':
+    if config.mode in ('gradual', 'suite', 'perf_overhead'):
         mvo_source_path = target_path / MVO_DIR_NAME
         vanilla_source_path = target_path / VANILLA_DIR_NAME
 

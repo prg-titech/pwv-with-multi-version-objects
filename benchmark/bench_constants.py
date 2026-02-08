@@ -1,6 +1,6 @@
 from typing import Literal
 
-BenchmarkMode = Literal["suite", "gradual", "switch"]
+BenchmarkMode = Literal["suite", "gradual", "switch", "perf_overhead"]
 OutputFormat = Literal["cli", "graph"]
 
 OUTPUT_FORMATS = ("cli", "graph")
@@ -13,6 +13,7 @@ MODE_DIR_MAP: dict[BenchmarkMode, str] = {
     "suite": "suite",
     "gradual": "gradual_overhead",
     "switch": "switch_count",
+    "perf_overhead": "perf_overhead",
 }
 
 MODE_CHOICES = tuple(MODE_DIR_MAP.keys())

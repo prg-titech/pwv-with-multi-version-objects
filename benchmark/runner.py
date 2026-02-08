@@ -13,7 +13,7 @@ from executor import execute_and_measure, execute_and_measure_for_switch_count
 
 def _resolve_targets(bench_config: BenchmarkConfig) -> list[str]:
     targets_path = TARGETS_ROOT / MODE_DIR_MAP[bench_config.mode]
-    if bench_config.mode == 'suite' and bench_config.target_name:
+    if bench_config.mode in ('suite', 'perf_overhead') and bench_config.target_name:
         target_dir = targets_path / bench_config.target_name
         if not target_dir.is_dir():
             log(f"Target not found: {target_dir}")

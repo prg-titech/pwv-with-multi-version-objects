@@ -21,7 +21,12 @@ def parse_args() -> argparse.Namespace:
     """コマンドライン引数を解析する。"""
     parser = argparse.ArgumentParser(description="Run the MVO benchmark suite.")
     parser.add_argument("mode", choices=MODE_CHOICES, help="The benchmark mode to run.")
-    parser.add_argument("target_name", nargs='?', default=None, help="Optional: Target name for 'suite' mode.")
+    parser.add_argument(
+        "target_name",
+        nargs='?',
+        default=None,
+        help="Optional: Target name for 'suite' or 'perf_overhead' mode.",
+    )
     parser.add_argument("--loop", type=int, default=DEFAULT_LOOP_COUNT, help="Number of loops inside the benchmark target.")
     parser.add_argument("--repeat", type=int, default=DEFAULT_REPEAT_COUNT, help="Number of times to repeat the measurement.")
     parser.add_argument(
@@ -66,7 +71,7 @@ def main():
         log(f"Results written to: {csv_path}")
         # output_configにmodeを渡して、reporterがグラフの種類を判断できるようにする
         output_config.mode = args.mode
-        if args.mode == 'suite' or args.mode == 'gradual':            
+        if args.mode in ('suite', 'gradual', 'perf_overhead'):            
             report_results(csv_path, output_config)
         else:
             report_results_switch(csv_path)

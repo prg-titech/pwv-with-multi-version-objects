@@ -30,15 +30,19 @@ uv sync --group bench --active
 python benchmark/run_benchmark.py suite
 python benchmark/run_benchmark.py gradual
 python benchmark/run_benchmark.py switch
+python benchmark/run_benchmark.py perf_overhead
 ```
 
-### 2. 単一ベンチマークの実行（suite モードのみ）
+### 2. 単一ベンチマークの実行（suite / perf_overhead モード）
 
-suite モードではターゲット名を指定して個別実行できます。
+suite / perf_overhead モードではターゲット名を指定して個別実行できます。
 
 ```bash
 # 'benchmark/targets/suite/richards/' のみ実行
 python benchmark/run_benchmark.py suite richards
+
+# 'benchmark/targets/perf_overhead/method_switch/' のみ実行
+python benchmark/run_benchmark.py perf_overhead method_switch
 ```
 
 ### 3. パラメータの指定
