@@ -1,9 +1,7 @@
-import ast
 from dataclasses import dataclass, field
 from typing import List, Dict, Set, Tuple
 
 from .method_info import MethodInfo
-from .field_info import FieldInfo
 
 @dataclass
 class ClassInfo:
@@ -12,8 +10,6 @@ class ClassInfo:
     is_versioned: bool
     versioned_bases: Dict[str, List[Tuple[str, str]]] = field(default_factory=dict)
     methods: Dict[str, List[MethodInfo]] = field(default_factory=dict)
-    fields: Dict[str, List[FieldInfo]] = field(default_factory=dict)
-    inner_classes: Dict[str, List[ast.ClassDef]] = field(default_factory=dict)
 
     def get_all_versions(self) -> Set[str]:
         """
@@ -23,10 +19,6 @@ class ClassInfo:
         for overloads in self.methods.values():
             for method_info in overloads:
                 versions.add(method_info.version)
-        
-        for overloads in self.fields.values():
-            for field_info in overloads:
-                versions.add(field_info.version)
         
         return versions
     

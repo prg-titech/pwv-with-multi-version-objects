@@ -36,14 +36,6 @@ class SymbolTable:
             lines.append(f"Class: {name} (Versioned: {info.is_versioned})")
             lines.append(f"  - Base Classes: {info.versioned_bases}")
 
-            # Output field information
-            if not info.fields:
-                lines.append("  - (No fields found)")
-            else:
-                for field_name, field_overloads in info.fields.items():
-                    for field_info in field_overloads:
-                        lines.append(f"  - Field: {field_info.name}, Version: {field_info.version}, Type: {field_info.type}")
-
             # Output method information
             if not info.methods:
                 lines.append("  - (No methods found)")

@@ -3,9 +3,9 @@ import ast, re, copy
 from .skelton_generator import SkeltonGenerator
 from .constructor_generator import ConstructorGenerator
 from .stub_method_generator import StubMethodGenerator
-from .class_attribute_generator import ClassAttributeGenerator
 from ..symbol_table.symbol_table import SymbolTable
 from ..util.template_util import get_template_string
+from ..util.ast_util import get_switch_to_version_method_name
 from ..util import logger
 
 class UnifiedClassBuilder:
@@ -30,10 +30,6 @@ class UnifiedClassBuilder:
         sync_asts = self.state_sync_components[1] if self.state_sync_components else []
         skeleton_builder = SkeltonGenerator(self.class_name, self.symbol_table, sync_asts)
         new_class_ast = skeleton_builder.generate()
-
-        # --- Inject class attributes ---
-        attr_generator = ClassAttributeGenerator(new_class_ast, self.symbol_table, self.class_name)
-        attr_generator.generate()
 
         # --- Generate constructor ---
         constructor_generator = ConstructorGenerator(new_class_ast, self.symbol_table, self.class_name)
@@ -77,6 +73,7 @@ class UnifiedClassBuilder:
             return
         getter_template_string = get_template_string("getter_template.py")
         setter_template_string = get_template_string("setter_template.py")
+        switch_method_name = get_switch_to_version_method_name(self.class_name)
         for version, attr_list in incompatibility.items():
             for attr in attr_list:
                 getter_template_copy = copy.deepcopy(getter_template_string)
@@ -84,9 +81,11 @@ class UnifiedClassBuilder:
                 print(f"Injecting __getattr__ and __setattr__ for attribute '{attr}' in version {version}")
                 getter_template_copy = re.sub(r'\[ATTR\]', attr, getter_template_copy)
                 getter_template_copy = re.sub(r'\[VERSION\]', str(version), getter_template_copy)
+                getter_template_copy = re.sub(r'_SWITCH_TO_VERSION_PLACEHOLDER', switch_method_name, getter_template_copy)
                 template_ast_getter = ast.parse(getter_template_copy).body[0]
                 setter_template_copy = re.sub(r'\[ATTR\]', attr, setter_template_copy)
                 setter_template_copy = re.sub(r'\[VERSION\]', str(version), setter_template_copy)
+                setter_template_copy = re.sub(r'_SWITCH_TO_VERSION_PLACEHOLDER', switch_method_name, setter_template_copy)
                 template_ast_setter = ast.parse(setter_template_copy).body[0]
 
                 new_class_ast.body.append(template_ast_getter)

@@ -4,10 +4,7 @@ from .util import ast_util
 from .symbol_table.symbol_table import SymbolTable
 from .builder.unified_class_builder import UnifiedClassBuilder
 from .symbol_table.symbol_table_builder import SymbolTableBuilder
-from .util.template_util import load_template_ast
 from .util import logger
-
-_REQUIRED_IMPORTS_TEMPLATE = "required_imports_template.py"
 
 class SourceTransformer:
     """Takes the Source AST of **a single file** as input and returns the compiled AST."""
@@ -55,8 +52,7 @@ class SourceTransformer:
         new_body = []
         processed_class_names = set()
 
-        required_imports = self._load_required_imports()
-        final_required_imports = self._merge_imports(required_imports, all_sync_imports)
+        final_required_imports = self._merge_imports([], all_sync_imports)
         new_body.extend(final_required_imports)
 
         for node in source_ast.body:
@@ -75,16 +71,6 @@ class SourceTransformer:
         return source_ast
     
     # --- HELPER METHODS ---
-    def _load_required_imports(self) -> list[ast.AST]:
-        """Loads the required import AST nodes from the template."""
-        imports = []
-        template_ast = load_template_ast(_REQUIRED_IMPORTS_TEMPLATE)
-        if template_ast:
-            for node in template_ast.body:
-                if isinstance(node, (ast.Import, ast.ImportFrom)):
-                    imports.append(node)
-        return imports
-
     def _merge_imports(self, infra_imports: list[ast.AST], sync_imports: list[ast.AST]) -> list[ast.AST]:
         merged = {}
         for imp in infra_imports + sync_imports:

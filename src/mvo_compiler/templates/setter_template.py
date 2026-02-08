@@ -1,8 +1,7 @@
-@[ATTR].setter
+﻿@[ATTR].setter
 def [ATTR](self, value):
     try:
         self._[ATTR]
     except AttributeError:
-        self._test_switch_to_version([VERSION])
+        self._SWITCH_TO_VERSION_PLACEHOLDER([VERSION])
     self._[ATTR] = value
-

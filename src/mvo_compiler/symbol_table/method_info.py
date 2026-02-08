@@ -35,7 +35,6 @@ class ParameterInfo:
 class MethodInfo:
     """A data class to hold information about a method."""
     name: str
-    return_type: str
     version: str
     parameters: List[ParameterInfo] = field(default_factory=list)
     ast_node: ast.FunctionDef | None = None
