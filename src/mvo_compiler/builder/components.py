@@ -11,7 +11,7 @@ def build_sync_components(
     state_sync_components: tuple | None,
 ) -> list[ast.FunctionDef]:
     """
-    Builds sync functions from the sync module as static methods.
+    syncモジュール内の関数を staticmethod として生成する。
     """
     if not state_sync_components:
         return []
@@ -27,13 +27,13 @@ def build_sync_components(
 
     return out
 
-# Preliminary
+# 暫定
 def build_getattr_setattr_methods(
     class_name: str,
     incompatibility: dict | None = None,
 ) -> list[ast.FunctionDef]:
     """
-    Builds __getattr__ and __setattr__ methods to handle dynamic attribute access.
+    動的属性アクセスのための __getattr__/__setattr__ を生成する。
     """
     if incompatibility is None:
         return []

@@ -1,5 +1,5 @@
-# This file is a template for the transpiler to parse and reuse ASTs.
-# It is not executed directly.
+# トランスパイラがASTとして解析・再利用するためのテンプレート。
+# 直接実行されない。
 def __init__(self, *args, **kwargs):
 
     self._CURRENT_STATE_PLACEHOLDER = self._VERSION_INSTANCES_SINGLETON_PLACEHOLDER[0]
@@ -7,5 +7,5 @@ def __init__(self, *args, **kwargs):
     try:
         self._CURRENT_STATE_PLACEHOLDER.__initialize__(*args, _wrapper_self=self, **kwargs)
     except (AttributeError, TypeError):
-        # if-else chain to dispatch __initialize__ calls
+        # __initialize__ 呼び出しのディスパッチ if-else 連鎖
         pass

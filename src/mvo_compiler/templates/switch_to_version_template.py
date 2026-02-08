@@ -1,5 +1,5 @@
-# This file is a template for the transpiler to parse and reuse ASTs.
-# It is not executed directly.
+# トランスパイラがASTとして解析・再利用するためのテンプレート。
+# 直接実行されない。
 def _SWITCH_TO_VERSION_PLACEHOLDER(self, version_num):
     type(self)._switch_count += 1
     current_version_num = self._CURRENT_STATE_PLACEHOLDER._version_number

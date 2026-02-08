@@ -13,7 +13,7 @@ def transform_module(
     incompatibilities: dict | None,
     version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY,
 ) -> ast.AST:
-    """Transform source AST into the compiled AST (versioned classes only)."""
+    """ソースASTを変換して生成ASTを返す（versionedクラスのみ対象）。"""
     symbol_table = _build_symbol_table(source_ast)
     versioned_classes_by_name = _group_versioned_classes(source_ast)
     if not versioned_classes_by_name:
@@ -41,10 +41,11 @@ def _build_symbol_table(source_ast: ast.AST) -> SymbolTable:
 
 def _group_versioned_classes(source_ast: ast.AST) -> dict[str, list[ast.ClassDef]]:
     versioned_classes_by_name: dict[str, list[ast.ClassDef]] = {}
-    for class_node in ast_util.get_all_class_defs(source_ast):
-        class_name, _ = ast_util.get_class_version_info(class_node)
-        if class_name:
-            versioned_classes_by_name.setdefault(class_name, []).append(class_node)
+    for node in source_ast.body:
+        if isinstance(node, ast.ClassDef):
+            class_name, _ = ast_util.get_class_version_info(node)
+            if class_name:
+                versioned_classes_by_name.setdefault(class_name, []).append(node)
     return versioned_classes_by_name
 
 def _build_unified_classes(

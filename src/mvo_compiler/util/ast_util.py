@@ -10,25 +10,25 @@ SWITCH_TO_VERSION_METHOD_NAME = "_switch_to_version"
 
 def get_version_instances_singleton_name(class_name: str) -> str:
     """
-    Generates the version instances singleton field name.
+    versionインスタンスのシングルトン名を生成する。
     """
     return f"_{class_name.upper()}_VERSION_INSTANCES_SINGLETON"
 
 def get_current_state_field_name(class_name: str) -> str:
     """
-    Generates the current state field name.
+    現在状態フィールド名を生成する。
     """
     return f"_{class_name.lower()}_current_state"
 
 def get_switch_to_version_method_name(class_name: str) -> str:
     """
-    Generates the switch to version method name.
+    バージョン切替メソッド名を生成する。
     """
     return f"_{class_name.lower()}_switch_to_version"
 
 def get_primary_class_def(tree: ast.AST) -> Optional[ast.ClassDef]:
     """
-    Finds and returns the first class definition node from a given AST.
+    ASTから最初のクラス定義ノードを返す。
     """
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
@@ -37,7 +37,7 @@ def get_primary_class_def(tree: ast.AST) -> Optional[ast.ClassDef]:
 
 def get_all_class_defs(tree: ast.AST) -> list[ast.ClassDef]:
     """
-    Returns a list of all class definition nodes in the given AST.
+    AST内の全クラス定義ノードを返す。
     """
     class_defs = []
     for node in ast.walk(tree):
@@ -47,10 +47,10 @@ def get_all_class_defs(tree: ast.AST) -> list[ast.ClassDef]:
 
 def get_class_version_info(class_node: ast.ClassDef) -> Tuple[Optional[str], Optional[str]]:
     """
-    Extracts the base name and version number string (e.g., "1", "2") from a class definition node.
+    クラス定義からベース名とバージョン番号文字列（例: "1", "2"）を抽出する。
 
-    Returns:
-        A tuple of (base_name, version_number_string). Returns (None, None) if it's not a versioned class.
+    戻り値:
+        (base_name, version_number_string)。versionedでない場合は (None, None)。
     """
     match = VERSIONED_CLASS_PATTERN.match(class_node.name)
     if match:
@@ -61,10 +61,10 @@ def get_class_version_info(class_node: ast.ClassDef) -> Tuple[Optional[str], Opt
 
 def get_class_version_info_from_name(class_name: str) -> Tuple[Optional[str], Optional[str]]:
     """
-    Extracts the base name and version number string (e.g., "1", "2") from a class name.
+    クラス名からベース名とバージョン番号文字列（例: "1", "2"）を抽出する。
 
-    Returns:
-        A tuple of (base_name, version_number_string). Returns (None, None) if it's not a versioned class.
+    戻り値:
+        (base_name, version_number_string)。versionedでない場合は (None, None)。
     """
     match = VERSIONED_CLASS_PATTERN.match(class_name)
     if match:
@@ -75,25 +75,24 @@ def get_class_version_info_from_name(class_name: str) -> Tuple[Optional[str], Op
 
 def get_impl_class_name(version_num_str: str) -> str:
     """
-    Generates the implementation class name.
+    実装クラス名を生成する。
     """
     return f"_V{version_num_str}_Impl"
 
 def get_instance_field_name(version_num_str: str) -> str:
     """
-    Generates the instance field name.
+    インスタンスフィールド名を生成する。
     """
     return f"_v{version_num_str}_instance"
 
 def get_sync_function_version_info(func_node: ast.FunctionDef) -> Tuple[Optional[int], Optional[int]]:
     """
-    Take the AST node of a sync function and extract
-    the version number strings of the source (from) and destination (to) from its name
+    sync関数のASTから、名前に含まれる from/to のバージョン番号を抽出する。
     
-    e.g.: 'sync_from_v1_to_v2' -> (1, 2)
+    例: 'sync_from_v1_to_v2' -> (1, 2)
 
-    Returns:
-        A tuple of (from_version, to_version). Returns (None, None) if the name doesn't match.
+    戻り値:
+        (from_version, to_version)。一致しない場合は (None, None)。
     """
     match = SYNC_FUNC_PATTERN.match(func_node.name)
     if match:

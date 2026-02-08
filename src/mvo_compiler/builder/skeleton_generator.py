@@ -25,7 +25,7 @@ def build_skeleton(
     singleton_stmt = _build_singleton_instance_list_stmt(class_info)
     switch_method = _create_switch_to_version_method(class_name, sync_asts)
 
-    # Temp: inject _switch_count attribute
+    # 暫定: _switch_count 属性を注入
     switch_count_attr = ast.Assign(
         targets=[ast.Name(id=SWITCH_COUNT_ATTR_NAME, ctx=ast.Store())],
         value=ast.Constant(value=0)
@@ -38,9 +38,9 @@ def build_skeleton(
     return target_class
 
 
-# --- HELPER METHODS ---
+# --- ヘルパー関数 ---
 def _build_wrapper_class(class_info) -> ast.ClassDef:
-    # Create a list of unique "parent implementation classes" from ALL versions
+    # 全バージョンから親実装クラスのユニーク集合を作る
     all_unique_base_impls = {}
     for parent_list in class_info.versioned_bases.values():
         for parent_base_name, parent_version in parent_list:
@@ -55,7 +55,7 @@ def _build_wrapper_class(class_info) -> ast.ClassDef:
                     ctx=ast.Load()
                 )
 
-    # Create the wrapper class definition
+    # wrapperクラス定義を作成
     target_class = ast.ClassDef(
         name=class_info.class_name,
         bases=list(all_unique_base_impls.values()),
@@ -67,7 +67,7 @@ def _build_impl_classes(class_info, class_name: str) -> list[ast.ClassDef]:
     impl_classes: list[ast.ClassDef] = []
 
     for version_str in class_info.get_all_versions():
-        # Create a list of unique "parent implementation classes" for EACH version
+        # 各バージョンごとの親実装クラス一覧を作成
         impl_bases = []
         parent_list = class_info.versioned_bases.get(version_str, [])
         for parent_base_name, parent_version in parent_list:
@@ -81,18 +81,18 @@ def _build_impl_classes(class_info, class_name: str) -> list[ast.ClassDef]:
                     ctx=ast.Load()
                 ))
 
-        # Create the implementation class definition
+        # 実装クラス定義を作成
         target_impl_class = ast.ClassDef(
             name=get_impl_class_name(version_str),
             bases=impl_bases if impl_bases else [ast.Name(id='object', ctx=ast.Load())],
             keywords=[], body=[], decorator_list=[]
         )
 
-        # Create TopLevelMethodTransformer
+        # TopLevelMethodTransformer を作成
         parent_info_list = class_info.versioned_bases.get(version_str, [])
         parent_context = None
         if parent_info_list:
-            # for simplicity, only consider the first parent
+            # 簡易化のため先頭の親のみを考慮
             if len(parent_info_list) > 1:
                 logger.warning_log(f"Multiple inheritance detected in class '{class_name}' version '{version_str}'.")
                 logger.warning_log("Current implementation only considers the first parent for method transformation.")
@@ -104,7 +104,7 @@ def _build_impl_classes(class_info, class_name: str) -> list[ast.ClassDef]:
                 parent_context = ('mvo', (parent_base_name, parent_version))
         method_transformer = TopLevelMethodTransformer(class_name, parent_context)
 
-        # 1. Merge methods from the versioned class into the impl class
+        # 1. versionedクラスのメソッドをimplへ統合
         for method_info in class_info.get_methods_for_version(version_str):
             if method_info.ast_node:
                 member_copy = copy.deepcopy(method_info.ast_node)
@@ -112,14 +112,14 @@ def _build_impl_classes(class_info, class_name: str) -> list[ast.ClassDef]:
                 transformed_method = method_transformer.visit(member_copy)
                 target_impl_class.body.append(transformed_method)
 
-        # 2. Inject _version_number attribute
+        # 2. _version_number 属性を注入
         version_attr_stmt = ast.Assign(
             targets=[ast.Name(id='_version_number', ctx=ast.Store())],
             value=ast.Constant(value=int(version_str))
         )
         target_impl_class.body.insert(0, version_attr_stmt)
 
-        # 3. Inject default constructor
+        # 3. デフォルトコンストラクタを注入
         default_ctor = ast.FunctionDef(
             name='__init__',
             args=ast.arguments(posonlyargs=[], args=[ast.arg(arg='self')], kwonlyargs=[], kw_defaults=[], defaults=[]),
@@ -160,19 +160,19 @@ def _create_switch_to_version_method(
     return switch_method_node
 
 def _create_sync_dispatch_chain(sync_asts: List[ast.FunctionDef]) -> ast.If | None:
-    """Generates a nested if-else chain to call sync functions."""
-    # Create a dictionary with from_ver as key and a list of (to_ver, func_name) tuples as values
+    """sync関数呼び出し用の if-else 連鎖を生成する。"""
+    # from_ver をキーに (to_ver, func_name) のリストを作る
     sync_map: dict[str, list[tuple[int, int]]] = {}
     for func_node in sync_asts:
         from_ver, to_ver = get_sync_function_version_info(func_node)
         if from_ver and to_ver:
             sync_map.setdefault(from_ver, []).append((to_ver, func_node.name))
 
-    # Generate the outer if-else chain (if current_version_num == ...:)
+    # 外側の if-else 連鎖を生成 (if current_version_num == ...:)
     outer_top_if = None
     outer_current_if = None
     for from_ver, to_calls in sync_map.items():
-        # Generate the inner if-else chain (if version_num == ...:)
+        # 内側の if-else 連鎖を生成 (if version_num == ...:)
         inner_top_if = None
         inner_current_if = None
         for to_ver, func_name in to_calls:
@@ -191,7 +191,7 @@ def _create_sync_dispatch_chain(sync_asts: List[ast.FunctionDef]) -> ast.If | No
                 inner_current_if.orelse = [inner_if_stmt]
                 inner_current_if = inner_if_stmt
         
-        # Generate the outer if statement
+        # 外側の if を生成
         outer_if_stmt = ast.If(
             test=ast.Compare(left=ast.Name(id='current_version_num', ctx=ast.Load()), ops=[ast.Eq()], comparators=[ast.Constant(value=int(from_ver))]),
             body=[inner_top_if] if inner_top_if else [ast.Pass()],
@@ -208,10 +208,10 @@ def _create_sync_dispatch_chain(sync_asts: List[ast.FunctionDef]) -> ast.If | No
 
 class TopLevelMethodTransformer(ast.NodeTransformer):
     """
-    Transforme the top-level methods' AST of a versioned class.
-    - Add _wrapper_self to the method signature.
-    - Rebind the original first argument to point to the wrapper
-    - Rewrite super() calls
+    versionedクラスのトップレベルメソッドASTを変換する。
+    - _wrapper_self をシグネチャに追加
+    - 先頭引数を wrapper に再束縛
+    - super() 呼び出しを書き換え
     """
     def __init__(self, class_name: str, parent_context: tuple | None):
         self.class_name = class_name
@@ -230,14 +230,14 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
         self.is_in_top_level_method = True
         self.top_level_self_name = node.args.args[0].arg
 
-        # 1. Add `_wrapper_self` to the method signature
+        # 1. `_wrapper_self` をシグネチャに追加
         wrapper_self_arg = ast.arg(arg=WRAPPER_SELF_ARG_NAME)
         if not node.args.kwonlyargs: node.args.kwonlyargs = []
         if not node.args.kw_defaults: node.args.kw_defaults = []
         node.args.kwonlyargs.append(wrapper_self_arg)
         node.args.kw_defaults.append(ast.Constant(value=None))
 
-        # 2. Generate conditional rebinding code: `self = _wrapper_self`
+        # 2. 条件付きの再束縛: `self = _wrapper_self`
         #    if _wrapper_self is not None:
         #        self = _wrapper_self
         conditional_rebind_stmt = ast.If(
@@ -255,26 +255,25 @@ class TopLevelMethodTransformer(ast.NodeTransformer):
             orelse=[]
         )
 
-        # 3. Traverse the method body to rewrite super() calls
+        # 3. メソッド本体を走査して super() を書き換える
         new_body = [conditional_rebind_stmt]
         for statement in node.body:
             new_body.append(self.visit(statement))
         node.body = new_body
         
-        # 4. Reset state
+        # 4. 状態をリセット
         self.is_in_top_level_method = False
         self.top_level_self_name = None
         
         return node
 
     def visit_ClassDef(self, node: ast.ClassDef):
-        # A nested class definition is found, do not traverse its body
-        # (Since, inner classes have their own inheritance and self)
+        # ネストされたクラスは走査しない（内側は別の継承/ self を持つため）
         return node
     
     def visit_Call(self, node: ast.Call) -> ast.Call:
         """
-        - Rewrite: super() -> super(ClassName, _wrapper_self)
+        - 書き換え: super() -> super(ClassName, _wrapper_self)
         """
         if self.is_in_top_level_method and isinstance(node.func, ast.Name) and node.func.id == 'super':
             if not self.parent_context:

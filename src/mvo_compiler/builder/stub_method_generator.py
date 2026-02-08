@@ -18,7 +18,7 @@ def build_stub_methods(
     base_name: str,
     version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY,
 ) -> list[ast.FunctionDef]:
-    """Generates and returns public stub methods."""
+    """公開スタブメソッドを生成して返す。"""
     class_info = symbol_table.lookup_class(base_name)
     if not class_info:
         return []
@@ -29,7 +29,7 @@ def build_stub_methods(
             continue
     
         if class_info.has_consistent_signature(method_name):
-            # A. If signatures are consistent -> Generate stub which completely matches the signature
+            # A. シグネチャが一致する場合 -> 完全一致のスタブを生成
             stub = _generate_consistent_signature_stub(
                 symbol_table,
                 base_name,
@@ -38,7 +38,7 @@ def build_stub_methods(
                 version_selection_strategy,
             )
         else:
-            # B. If signatures are inconsistent -> Generate generic stub with *args, **kwargs
+            # B. シグネチャが不一致の場合 -> *args/**kwargs の汎用スタブを生成
             stub = _generate_inconsistent_signature_stub(
                 symbol_table,
                 base_name,
@@ -62,13 +62,13 @@ def _generate_consistent_signature_stub(
     version_selection_strategy: str,
 ) -> ast.FunctionDef | None:
     """
-    Generates a stub method with a consistent signature.
+    シグネチャが一致するスタブを生成する。
     """
     method_info = overloads[0]
     if not method_info.ast_node:
         return None
 
-    # 1. Reconstruct method signature
+    # 1. メソッドシグネチャを再構成
     stub_args = copy.deepcopy(method_info.ast_node.args)
     stub_args.args[0] = ast.arg(arg='self')
     
@@ -110,7 +110,7 @@ def _generate_consistent_signature_stub(
         
         stub_method.body.append(ast_if)
 
-    # 2. Create AST for fast path (try block)
+    # 2. fast path の AST（try ブロック）を生成
     call_args = []
     call_keywords = [
         ast.keyword(arg=WRAPPER_SELF_ARG_NAME, value=ast.Name(id='self', ctx=ast.Load()))
@@ -133,13 +133,13 @@ def _generate_consistent_signature_stub(
     )
     fast_path_body = [ast.Return(value=fast_path_call)]
     
-    # 3. Create AST for slow path (except block)
-    # Get all versions which implement this method
+    # 3. slow path の AST（except ブロック）を生成
+    # このメソッドを持つ全バージョンを取得
     class_info = symbol_table.lookup_class(base_name)
     overloads = class_info.methods.get(method_name, [])
     callable_versions = sorted([int(info.version) for info in overloads])
 
-    # Currently, we call the first version of sorted callable versions
+    # 現状はソート済みの先頭バージョンを使用
     if callable_versions:
         next_version_to_try = callable_versions[0]
     else:
@@ -170,9 +170,9 @@ def _generate_inconsistent_signature_stub(
     version_selection_strategy: str,
 ) -> ast.FunctionDef:
     """
-    Generates a generic stub method with *args and **kwargs.
+    *args と **kwargs の汎用スタブを生成する。
     """
-    # 1. Create infrastructure of stub method: def method_name(self, *args, **kwargs)
+    # 1. スタブの骨格: def method_name(self, *args, **kwargs)
     stub_method = ast.FunctionDef(
         name=method_name,
         args=ast.arguments(
@@ -215,7 +215,7 @@ def _generate_inconsistent_signature_stub(
         
         stub_method.body.append(ast_if)
 
-    # 2. Create AST for fast path (try block)
+    # 2. fast path の AST（try ブロック）を生成
     fast_path_body = [ast.Return(value=ast.Call(
         func=ast.Attribute(
             value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(base_name), ctx=ast.Load()),
@@ -228,7 +228,7 @@ def _generate_inconsistent_signature_stub(
         ]
     ))]
 
-    # 3. Create AST for slow path (except block)
+    # 3. slow path の AST（except ブロック）を生成
     slow_path_body = _create_slow_path_dispatcher(base_name, method_name, overloads)
     
     except_handler = ast.ExceptHandler(
@@ -237,7 +237,7 @@ def _generate_inconsistent_signature_stub(
         body=slow_path_body
     )
 
-    # 4. Combine into try-except structure
+    # 4. try-except 構造に組み立て
     stub_method.body.append(ast.Try(
         body=fast_path_body,
         handlers=[except_handler],

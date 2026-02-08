@@ -4,7 +4,7 @@ from .class_info import ClassInfo
 
 class SymbolTable:
     """
-    Holds information about all classes of the project.
+    プロジェクト内の全クラス情報を保持する。
     """
 
     def __init__(self):
@@ -12,19 +12,19 @@ class SymbolTable:
 
     def add_class(self, class_info: ClassInfo):
         """
-        Add or Update class information in the table.
+        クラス情報を追加または更新する。
         """
         self._class_table[class_info.class_name] = class_info
 
     def lookup_class(self, class_name: str) -> Optional[ClassInfo]:
         """
-        Search class information by its class name.
+        クラス名で情報を検索する。
         """
         return self._class_table.get(class_name)
 
     def get_representation(self) -> str:
         """
-        Gets a string representation of the symbol table.
+        シンボルテーブルの文字列表現を返す。
         """
         lines = ["","--- Symbol Table ---"]
         if not self._class_table:

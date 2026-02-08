@@ -5,17 +5,18 @@ from .method_info import MethodInfo
 
 @dataclass
 class ClassInfo:
-    """Holds information about a single class, including all its members."""
+    """単一クラスの情報（メンバ情報を含む）を保持する。"""
     class_name: str
     is_versioned: bool
     versioned_bases: Dict[str, List[Tuple[str, str]]] = field(default_factory=dict)
     methods: Dict[str, List[MethodInfo]] = field(default_factory=dict)
+    versions: Set[str] = field(default_factory=set)
 
     def get_all_versions(self) -> Set[str]:
         """
-        Get set of all versions of this class.
+        このクラスに存在するバージョン集合を返す。
         """
-        versions = set()
+        versions = set(self.versions)
         for overloads in self.methods.values():
             for method_info in overloads:
                 versions.add(method_info.version)
@@ -24,7 +25,7 @@ class ClassInfo:
     
     def get_methods_for_version(self, version_str: str) -> List[MethodInfo]:
         """
-        Get all MethodInfo instances that belong to the specified version number.
+        指定バージョンに属するMethodInfoをすべて返す。
         """
         version_methods = []
         for overloads in self.methods.values():
@@ -35,7 +36,7 @@ class ClassInfo:
 
     def has_consistent_signature(self, method_name: str) -> bool:
         """
-        Check if all versions of the specified method have a consistent signature.
+        指定メソッドの全バージョンが同一シグネチャかを判定する。
         """
         overloads = self.methods.get(method_name)
         if not overloads or len(overloads) <= 1:

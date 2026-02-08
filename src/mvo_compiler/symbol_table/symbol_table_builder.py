@@ -8,7 +8,7 @@ from ..util.constants import INITIALIZE_METHOD_NAME
 
 class SymbolTableBuilder(ast.NodeVisitor):
     """
-    Traverses the Source AST to build a symbol table.
+    ソースASTを走査してシンボルテーブルを構築する。
     """
     def __init__(self, symbol_table: SymbolTable):
         self.symbol_table = symbol_table
@@ -17,7 +17,7 @@ class SymbolTableBuilder(ast.NodeVisitor):
         class_name, version = get_class_version_info(node)
 
         if not class_name:
-            # Unversioned class
+            # 非バージョンクラス
             class_name = node.name
             is_versioned = False
             version = UNVERSIONED_CLASS_TAG
@@ -27,24 +27,37 @@ class SymbolTableBuilder(ast.NodeVisitor):
         existing_class_info = self.symbol_table.lookup_class(class_name)
         methods_map = existing_class_info.methods if existing_class_info else {}
         versioned_bases_map = existing_class_info.versioned_bases if existing_class_info else {}
+        versions_set = set(existing_class_info.versions) if existing_class_info else set()
 
-        # Collect base classes, if this class is versioned
+        # versionedクラスの場合のみ継承関係を収集
         if is_versioned:
+            versions_set.add(version)
             bases_for_this_version = []
             for base_node in node.bases:
-                parent_base_name, parent_version = get_class_version_info_from_name(base_node.id)
-                
-                if not parent_base_name:
+                parent_base_name = None
+                parent_version = None
+
+                if isinstance(base_node, ast.Name):
+                    parent_base_name, parent_version = get_class_version_info_from_name(base_node.id)
+                    if not parent_base_name:
+                        parent_base_name = base_node.id
+                        parent_version = UNVERSIONED_CLASS_TAG
+                elif isinstance(base_node, ast.Attribute):
+                    parent_base_name, parent_version = get_class_version_info_from_name(base_node.attr)
+                    if not parent_base_name:
+                        parent_base_name = ast.unparse(base_node)
+                        parent_version = UNVERSIONED_CLASS_TAG
+                else:
                     parent_base_name = ast.unparse(base_node)
                     parent_version = UNVERSIONED_CLASS_TAG
-                
+
                 bases_for_this_version.append((parent_base_name, parent_version))
             
             if bases_for_this_version:
                 versioned_bases_map[version] = bases_for_this_version
         
         for member in node.body:
-            # Collect methods
+            # メソッド定義の収集
             if isinstance(member, ast.FunctionDef):
                 method_info = self._create_method_info(member, version)
                 if member.name == '__init__' and is_versioned:
@@ -57,6 +70,7 @@ class SymbolTableBuilder(ast.NodeVisitor):
             is_versioned=is_versioned,
             versioned_bases=versioned_bases_map,
             methods=methods_map,
+            versions=versions_set,
         )
         self.symbol_table.add_class(class_info)
 
@@ -65,11 +79,11 @@ class SymbolTableBuilder(ast.NodeVisitor):
         parameters = []
         args = method_node.args
         
-        # Calculate the starting index of default values
+        # デフォルト値の開始位置を計算
         pos_and_kw_args = args.posonlyargs + args.args
         defaults_start_index = len(pos_and_kw_args) - len(args.defaults)
 
-        # --- 1. Collect positional-only parameters (/) ---
+        # --- 1. 位置専用引数 (/) の収集 ---
         for i, arg in enumerate(args.posonlyargs):
             parameters.append(ParameterInfo(
                 name=arg.arg,
@@ -78,9 +92,9 @@ class SymbolTableBuilder(ast.NodeVisitor):
                 kind='POSITIONAL_ONLY'
             ))
 
-        # --- 2. Collect regular parameters ---
+        # --- 2. 通常引数の収集 ---
         for i, arg in enumerate(args.args):
-            # Ignore 'self'
+            # 'self' は無視
             if i == 0:
                 continue
             
@@ -92,7 +106,7 @@ class SymbolTableBuilder(ast.NodeVisitor):
                 kind='POSITIONAL_OR_KEYWORD'
             ))
             
-        # --- 3. Collect variable-length positional parameters (*args) ---
+        # --- 3. 可変長位置引数 (*args) の収集 ---
         if args.vararg:
             arg = args.vararg
             parameters.append(ParameterInfo(
@@ -102,7 +116,7 @@ class SymbolTableBuilder(ast.NodeVisitor):
                 kind='VAR_POSITIONAL'
             ))
 
-        # --- 4. Collect keyword-only parameters (*) ---
+        # --- 4. キーワード専用引数 (*) の収集 ---
         for i, arg in enumerate(args.kwonlyargs):
             has_default = args.kw_defaults[i] is not None
             parameters.append(ParameterInfo(
@@ -112,7 +126,7 @@ class SymbolTableBuilder(ast.NodeVisitor):
                 kind='KEYWORD_ONLY'
             ))
 
-        # --- 5. Collect variable-length keyword arguments (**kwargs) ---
+        # --- 5. 可変長キーワード引数 (**kwargs) の収集 ---
         if args.kwarg:
             arg = args.kwarg
             parameters.append(ParameterInfo(

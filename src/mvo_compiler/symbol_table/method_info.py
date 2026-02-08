@@ -4,7 +4,7 @@ from typing import List, Literal
 
 @dataclass
 class ParameterInfo:
-    """A data class to hold information about a single method parameter."""
+    """メソッド引数1つ分の情報を保持するデータクラス。"""
     name: str
     type: str
     has_default_value: bool
@@ -18,7 +18,7 @@ class ParameterInfo:
 
     def __eq__(self, other):
         """
-        Custom equality method for ParameterInfo.
+        ParameterInfo用の等価比較。
         """
         if not isinstance(other, ParameterInfo):
             return NotImplemented
@@ -33,7 +33,7 @@ class ParameterInfo:
 
 @dataclass
 class MethodInfo:
-    """A data class to hold information about a method."""
+    """メソッド情報を保持するデータクラス。"""
     name: str
     version: str
     parameters: List[ParameterInfo] = field(default_factory=list)

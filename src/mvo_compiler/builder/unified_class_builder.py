@@ -16,28 +16,28 @@ def build_unified_class(
     version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY,
 ) -> ast.ClassDef:
     """
-    Orchestrates the transformation of versioned classes' ASTs into a single, unified class AST.
+    versionedクラス群のASTを単一の統合クラスASTへ組み立てる。
     """
     logger.debug_log(f"Building unified class for: {class_name}")
 
-    # --- Generate unified class skeleton ---
+    # --- 統合クラスの骨格生成 ---
     sync_asts = state_sync_components[1] if state_sync_components else []
     new_class_ast = build_skeleton(class_name, symbol_table, sync_asts)
 
-    # --- Generate constructor ---
+    # --- コンストラクタ生成 ---
     constructor_ast = build_constructor(symbol_table, class_name)
 
-    # --- Generate stub methods ---
+    # --- スタブメソッド生成 ---
     stub_methods = build_stub_methods(
         symbol_table,
         class_name,
         version_selection_strategy,
     )
 
-    # --- Build __getattr__ and __setattr__ methods ---
+    # --- __getattr__/__setattr__ 生成 ---
     getattr_setattr_methods = build_getattr_setattr_methods(class_name, incompatibility)
 
-    # --- Build state synchronization components ---
+    # --- 状態同期コンポーネント生成 ---
     sync_methods = build_sync_components(class_name, state_sync_components)
 
     additions: list[ast.AST] = []
@@ -48,5 +48,5 @@ def build_unified_class(
     additions.extend(sync_methods)
     new_class_ast.body.extend(additions)
 
-    # --- Return the fully constructed class AST ---
+    # --- 完成したクラスASTを返す ---
     return new_class_ast

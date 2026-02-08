@@ -1,32 +1,32 @@
-# A simple logger for the transpiler.
+# トランスパイラ用の簡易ロガー。
 
-# This flag controls whether debug-level messages are printed.
-# It can be enabled from the command line.
+# デバッグ出力を有効化するフラグ。
+# コマンドライン引数で有効化できる。
 DEBUG_MODE = False
 
 def debug_log(message: str):
-    """Prints a debug message."""
+    """デバッグメッセージを出力する。"""
     if DEBUG_MODE:
         print(f"[LOG]     {message}")
 
 def success_log(message: str):
-    """Prints a success message."""
+    """成功メッセージを出力する。"""
     if DEBUG_MODE:
         print(f"[SUCCESS] {message}")
 
 def error_log(message: str):
-    """Prints an error message."""
+    """エラーメッセージを出力する。"""
     print(f"[ERROR]   {message}")
 
 def warning_log(message: str):
-    """Prints a warning message."""
+    """警告メッセージを出力する。"""
     print(f"[WARNING] {message}")
 
 def no_header_log(message: str):
-    """Prints a message without a header."""
+    """ヘッダ無しでメッセージを出力する。"""
     if DEBUG_MODE:
         print(message)
 
 def log(message: str):
-    """Prints a general message that should always be visible."""
+    """常に表示したい一般メッセージを出力する。"""
     print(message)

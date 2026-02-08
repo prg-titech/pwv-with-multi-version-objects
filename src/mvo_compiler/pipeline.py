@@ -23,21 +23,21 @@ def compile_project(
     delete_output_dir: bool = True,
 ) -> None:
     """
-    Compile the source files in the input directory and write the results to the output directory.
+    入力ディレクトリ内のソースをコンパイルし、出力ディレクトリに書き出す。
     """
-    # --- 1. Clean the output directory ---
+    # --- 1. 出力ディレクトリのクリーン ---
     if output_dir.exists() and delete_output_dir:
         logger.debug_log(f"Cleaning output directory: {output_dir}")
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- 2. Transform the ASTs ---
+    # --- 2. ASTの変換 ---
     transformed_files = transform_project(
         input_dir,
         version_selection_strategy=version_selection_strategy,
     )
 
-    # --- 3. Write down to the output directory ---
+    # --- 3. 出力ディレクトリへ書き出し ---
     for rel_path, transformed_ast in transformed_files:
         if transformed_ast:
             write_single_file(output_dir, rel_path, transformed_ast)
@@ -49,9 +49,9 @@ def transform_project(
     *,
     version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY,
     project_structure: dict | None = None,
-) -> list[tuple[Path, ast.AST]]:
+) -> list[tuple[Path, ast.AST | None]]:
     """
-    Transform only versioned classes in the input directory and return ASTs.
+    入力ディレクトリ内のversionedクラスのみを変換し、ASTを返す。
     """
     if project_structure is None:
         project_structure = create_project_structure(input_dir)
@@ -84,7 +84,7 @@ def transform_project(
 
 def execute_generated(entry_file: str, dir: Path) -> str:
     """
-    Execute the generated entry file.
+    生成されたエントリファイルを実行する。
     """
     logger.debug_log("\n--- Running Generated Code ---")
     entry_file_path = dir / entry_file
@@ -105,7 +105,7 @@ def execute_generated(entry_file: str, dir: Path) -> str:
         raise RuntimeError(f"Execution failed for {entry_file_path}: {e.stderr}")
 
 def write_single_file(output_dir: Path, original_rel_path: Path, tree: ast.AST) -> None:
-    """Write a single transformed AST to the specified directory as a file."""
+    """変換後ASTを指定ディレクトリに1ファイル書き出す。"""
     ast.fix_missing_locations(tree)
     generated_code = ast.unparse(tree)
 

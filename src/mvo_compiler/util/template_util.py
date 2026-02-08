@@ -12,13 +12,13 @@ _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 
 def get_template_string(template_filename: str) -> str | None:
     """
-    Read the contents of the specified template file in the templates directory.
+    templatesディレクトリ内のテンプレートファイルを読み込む。
 
     Args:
-        template_filename: The name of the template file to read (e.g., "stub_method_template.py")
+        template_filename: 読み込むテンプレートファイル名 (例: "stub_method_template.py")
 
-    Returns:
-        The contents of the file as a string, or None if the file is not found.
+    戻り値:
+        ファイル内容を文字列で返す。見つからない場合は None。
     """
     template_path = _TEMPLATE_DIR / template_filename
     try:
@@ -30,13 +30,13 @@ def get_template_string(template_filename: str) -> str | None:
     
 def load_template_ast(template_filename: str) -> ast.Module | None:
     """
-    Load and parse the AST from the specified template file.
+    指定テンプレートからASTを読み込んで返す。
 
     Args:
-        template_filename: The name of the template file to read (e.g., "stub_method_template.py")
+        template_filename: 読み込むテンプレートファイル名 (例: "stub_method_template.py")
 
-    Returns:
-        The parsed AST Module node, or None if loading or parsing fails.
+    戻り値:
+        解析済みのAST(Module)。読み込みやパースに失敗した場合は None。
     """
     template_string = get_template_string(template_filename)
     if not template_string:

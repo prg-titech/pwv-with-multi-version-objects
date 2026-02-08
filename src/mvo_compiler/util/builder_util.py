@@ -6,7 +6,7 @@ from ..util.constants import WRAPPER_SELF_ARG_NAME
 
 def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: list[MethodInfo]) -> list[ast.AST]:
     """
-    Generate a static if-elif chain for the slow path dispatcher.
+    スローパス用の静的 if-elif 連鎖を生成する。
     """
 
     sorted_overloads = sorted(overloads, key=lambda m: int(m.version))
@@ -15,10 +15,10 @@ def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: l
     current_if_stmt = None
 
     for method_info in sorted_overloads:
-        # a. Create the if statement condition
+        # a. if 条件を作成
         condition = _create_signature_check_condition(method_info.parameters)
 
-        # b. Generate the body of the if block
+        # b. if ブロック本体を生成
         if_body = [
             # self._xxx_switch_to_version(...)
             ast.Expr(value=ast.Call(
@@ -39,7 +39,7 @@ def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: l
             ))
         ]
         
-        # c. Create the if-else chain
+        # c. if-else 連鎖を構成
         if_stmt = ast.If(test=condition, body=if_body, orelse=[])
         if top_if_stmt is None:
             top_if_stmt = if_stmt
@@ -48,7 +48,7 @@ def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: l
             current_if_stmt.orelse = [if_stmt]
             current_if_stmt = if_stmt
     
-    # Last else branch: raise TypeError(...)
+    # 最後の else: TypeError を送出
     if current_if_stmt:
         current_if_stmt.orelse = [ast.Raise(exc=ast.Call(
             func=ast.Name(id='TypeError', ctx=ast.Load()),
@@ -60,13 +60,13 @@ def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: l
 
 def _create_signature_check_condition(params: list[ParameterInfo]) -> ast.AST:
     """
-    Generates a complex boolean AST expression to statically check if the
-    runtime arguments (*args, **kwargs) match the given method signature.
+    実行時引数 (*args, **kwargs) がメソッドシグネチャに合致するかを
+    静的に判定するための複合ブール式を生成する。
     """
-    # --- ASSUMPTIONS ---
-    # This logic assumes the target method signature does NOT contain
-    # positional-only arguments (/), keyword-only arguments (*),
-    # or variadic arguments (*args, **kwargs).
+    # --- 前提 ---
+    # 対象のメソッドシグネチャに
+    # 位置専用引数 (/), キーワード専用引数 (*),
+    # 可変長引数 (*args, **kwargs) が含まれない前提。
     
     param_names = [p.name for p in params]
     num_params = len(param_names)
@@ -74,24 +74,24 @@ def _create_signature_check_condition(params: list[ParameterInfo]) -> ast.AST:
 
     conditions = []
 
-    # Condition 1: The number of positional arguments does not exceed the total number of parameters.
-    # e.g., len(args) <= 3
+    # 条件1: 位置引数の数が総引数数を超えない
+    # 例: len(args) <= 3
     conditions.append(ast.Compare(
         left=ast.Call(func=ast.Name(id='len', ctx=ast.Load()), args=[ast.Name(id='args', ctx=ast.Load())], keywords=[]),
         ops=[ast.LtE()],
         comparators=[ast.Constant(value=num_params)]
     ))
 
-    # Condition 2: All provided keyword arguments are valid parameter names.
-    # e.g., kwargs.keys() <= {'param1', 'param2', ...}
+    # 条件2: すべてのキーワード引数が有効な名前である
+    # 例: kwargs.keys() <= {'param1', 'param2', ...}
     conditions.append(ast.Compare(
         left=ast.Call(func=ast.Attribute(value=ast.Name(id='kwargs', ctx=ast.Load()), attr='keys', ctx=ast.Load()), args=[], keywords=[]),
         ops=[ast.LtE()],
         comparators=[ast.Set(elts=[ast.Constant(value=name) for name in param_names])]
     ))
 
-    # Condition 3: No parameter is bound by both a positional and a keyword argument.
-    # e.g., not (len(args) > 0 and 'param1' in kwargs)
+    # 条件3: 位置引数とキーワード引数で同じパラメータを二重に束縛しない
+    # 例: not (len(args) > 0 and 'param1' in kwargs)
     for i, name in enumerate(param_names):
         conditions.append(ast.UnaryOp(
             op=ast.Not(),
@@ -109,8 +109,8 @@ def _create_signature_check_condition(params: list[ParameterInfo]) -> ast.AST:
             ])
         ))
 
-    # Condition 4: All required parameters are satisfied.
-    # e.g., (len(args) > 0 or 'param1' in kwargs)
+    # 条件4: 必須パラメータがすべて満たされる
+    # 例: (len(args) > 0 or 'param1' in kwargs)
     for i in required_param_indices:
         name = param_names[i]
         conditions.append(ast.BoolOp(op=ast.Or(), values=[
@@ -126,8 +126,8 @@ def _create_signature_check_condition(params: list[ParameterInfo]) -> ast.AST:
             )
         ]))
 
-    # Condition 5 (Redundant but safe): The total number of bound arguments does not exceed the number of parameters.
-    # e.g., len(args) + len(kwargs) <= 3
+    # 条件5（冗長だが安全）: 位置引数+キーワード引数の合計が総引数数を超えない
+    # 例: len(args) + len(kwargs) <= 3
     conditions.append(ast.Compare(
         left=ast.BinOp(
             left=ast.Call(func=ast.Name(id='len', ctx=ast.Load()), args=[ast.Name(id='args', ctx=ast.Load())], keywords=[]),
@@ -138,5 +138,5 @@ def _create_signature_check_condition(params: list[ParameterInfo]) -> ast.AST:
         comparators=[ast.Constant(value=num_params)]
     ))
 
-    # Combine all conditions with 'and'
+    # 全条件を AND で結合
     return ast.BoolOp(op=ast.And(), values=conditions)

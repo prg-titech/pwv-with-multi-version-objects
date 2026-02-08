@@ -13,9 +13,9 @@ from .util.constants import (
 
 def create_project_structure(input_dir: Path) -> Dict:
     """
-    1. Read the input directory for Python files
-    2. Parse each file to create an AST
-    3. Classify files into (normal files, state transfromation functions, incompatibilities)
+    1. 入力ディレクトリからPythonファイルを読み取る
+    2. 各ファイルをASTに変換する
+    3. ファイルを (通常ファイル / 同期関数 / 互換性定義) に分類する
     """
     project_structure = {
         PROJECT_SYNC_MODULES_KEY: {},
@@ -34,7 +34,7 @@ def create_project_structure(input_dir: Path) -> Dict:
     incompatibilities_files = list(input_dir.glob("**/*.json"))
 
     
-    # --- Case: Normal File ---
+    # --- 通常ファイル ---
     for source_file in source_files:
         try:
             with open(source_file, 'r', encoding='utf-8') as f:
@@ -44,7 +44,7 @@ def create_project_structure(input_dir: Path) -> Dict:
         except Exception as e:
             logger.error_log(f"Failed to parse {source_file}: {e}")
 
-    # --- Case: State Transformation File ---
+    # --- 状態同期ファイル ---
     sync_pattern = re.compile(r"(.+)_sync\.py$")
     for state_transformation_file in state_transformation_files:
         sync_match = sync_pattern.match(state_transformation_file.name)
@@ -56,7 +56,7 @@ def create_project_structure(input_dir: Path) -> Dict:
         except Exception as e:
             logger.error_log(f"Failed to parse {state_transformation_file}: {e}")
 
-    # -- Case: Incompatibilities File ---
+    # --- 互換性定義ファイル ---
     for incompatibilities_file in incompatibilities_files:
         try:
             incompatibilities = _parse_incompatibility_json(incompatibilities_file)
@@ -68,16 +68,16 @@ def create_project_structure(input_dir: Path) -> Dict:
     return project_structure
 
 
-# ----------------------
-# --- HELPER METHODS ---
-# ----------------------
+# --------------------
+# --- ヘルパー関数 ---
+# --------------------
 
 def _parse_sync_modules(base_name: str, source_code: str) -> Tuple:
     tree = ast.parse(source_code)
     modules = []
     functions = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
             modules.append(node)
         elif isinstance(node, ast.FunctionDef):
             functions.append(node)
@@ -85,14 +85,14 @@ def _parse_sync_modules(base_name: str, source_code: str) -> Tuple:
 
 def _parse_incompatibility_json(file_path: Path) -> Optional[Dict[str, Dict[str, Set[str]]]]:
     """
-    JSON schema:
+    JSONスキーマ:
       {
         "<base_name>": {
           "<version>": ["attr1", "attr2", ...]
         }
       }
 
-    Returns:
+    戻り値:
       { base_name: { version: set(attrs) } }
     """
     try:
