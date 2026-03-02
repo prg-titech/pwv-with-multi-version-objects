@@ -1,7 +1,9 @@
 @property
 def [ATTR](self):
     try:
-        return self._[ATTR]
+        _mvo_value = self._[ATTR]
     except AttributeError:
         self._SWITCH_TO_VERSION_PLACEHOLDER([VERSION])
-        return self._[ATTR]
+        _mvo_value = self._[ATTR]
+    self._MVO_RECORD_ACCESS_PLACEHOLDER("attr_read", "[ATTR]")
+    return _mvo_value

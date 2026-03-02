@@ -2,7 +2,20 @@ import ast
 
 from ..symbol_table.method_info import MethodInfo, ParameterInfo
 from ..util.ast_util import *
-from ..util.constants import WRAPPER_SELF_ARG_NAME
+from ..util.constants import ACCESS_RECORD_METHOD_NAME, WRAPPER_SELF_ARG_NAME
+
+def _create_access_record_stmt(access_kind: str, member_name: str) -> ast.Expr:
+    return ast.Expr(value=ast.Call(
+        func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=ACCESS_RECORD_METHOD_NAME, ctx=ast.Load()),
+        args=[ast.Constant(value=access_kind), ast.Constant(value=member_name)],
+        keywords=[],
+    ))
+
+def _create_observed_method_return(access_kind: str, member_name: str, call_expr: ast.Call) -> list[ast.AST]:
+    return [
+        _create_access_record_stmt(access_kind, member_name),
+        ast.Return(value=call_expr),
+    ]
 
 def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: list[MethodInfo]) -> list[ast.AST]:
     """
@@ -25,8 +38,10 @@ def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: l
                 func=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_switch_to_version_method_name(class_name), ctx=ast.Load()),
                 args=[ast.Constant(value=int(method_info.version))], keywords=[]
             )),
-            # return self._xxx_current_state.method_name(...)
-            ast.Return(value=ast.Call(
+            *_create_observed_method_return(
+                "method_call",
+                method_name,
+                ast.Call(
                 func=ast.Attribute(
                     value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(class_name), ctx=ast.Load()),
                     attr=method_name, ctx=ast.Load()
@@ -36,7 +51,8 @@ def _create_slow_path_dispatcher(class_name: str, method_name: str, overloads: l
                     ast.keyword(arg=WRAPPER_SELF_ARG_NAME, value=ast.Name(id='self', ctx=ast.Load())),
                     ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))
                 ]
-            ))
+                ),
+            ),
         ]
         
         # c. if-else 連鎖を構成

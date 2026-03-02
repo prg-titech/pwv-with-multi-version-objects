@@ -5,7 +5,7 @@ from .symbol_table.symbol_table import SymbolTable
 from .builder.unified_class_builder import build_unified_class
 from .symbol_table.symbol_table_builder import SymbolTableBuilder
 from .util import logger
-from .util.constants import DEFAULT_VERSION_SELECTION_STRATEGY
+from .util.constants import ACCESS_EVENT_EMITTER_NAME, DEFAULT_VERSION_SELECTION_STRATEGY
 
 def transform_module(
     source_ast: ast.AST,
@@ -84,7 +84,7 @@ def _rebuild_module_ast(
     new_body: list[ast.AST] = []
     processed_class_names = set()
 
-    final_required_imports = _merge_imports([], sync_imports)
+    final_required_imports = _merge_imports(_build_infra_imports(), sync_imports)
     new_body.extend(final_required_imports)
 
     for node in source_ast.body:
@@ -105,7 +105,44 @@ def _rebuild_module_ast(
 def _merge_imports(infra_imports: list[ast.AST], sync_imports: list[ast.AST]) -> list[ast.AST]:
     merged = {}
     for imp in infra_imports + sync_imports:
-        key = ast.unparse(imp)
+        key = ast.dump(imp, include_attributes=False)
         if key not in merged:
             merged[key] = imp
     return list(merged.values())
+
+def _build_infra_imports() -> list[ast.AST]:
+    return [
+        ast.Try(
+            body=[
+                ast.ImportFrom(
+                    module='mvo_compiler.runtime.access_events',
+                    names=[ast.alias(name='emit_access_event', asname=ACCESS_EVENT_EMITTER_NAME)],
+                    level=0,
+                )
+            ],
+            handlers=[
+                ast.ExceptHandler(
+                    type=ast.Name(id='ImportError', ctx=ast.Load()),
+                    name=None,
+                    body=[
+                        ast.FunctionDef(
+                            name=ACCESS_EVENT_EMITTER_NAME,
+                            args=ast.arguments(
+                                posonlyargs=[],
+                                args=[],
+                                vararg=None,
+                                kwonlyargs=[],
+                                kw_defaults=[],
+                                kwarg=ast.arg(arg='kwargs'),
+                                defaults=[],
+                            ),
+                            body=[ast.Return(value=ast.Constant(value=None))],
+                            decorator_list=[],
+                        )
+                    ],
+                )
+            ],
+            orelse=[],
+            finalbody=[],
+        )
+    ]

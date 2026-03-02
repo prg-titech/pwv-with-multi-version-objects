@@ -20,6 +20,7 @@ pytestdebug.log*
 # output directories
 output/
 logs/
+experiments/old_access_profile/runs/
 
 # temporary files
 *.tmp

@@ -4,6 +4,7 @@ import copy
 
 from ..util.template_util import get_template_string
 from ..util.ast_util import get_switch_to_version_method_name
+from ..util.constants import ACCESS_RECORD_METHOD_NAME
 from ..util import logger
 
 def build_sync_components(
@@ -51,11 +52,13 @@ def build_getattr_setattr_methods(
             getter_template_copy = re.sub(r'\[ATTR\]', attr, getter_template_string)
             getter_template_copy = re.sub(r'\[VERSION\]', str(version), getter_template_copy)
             getter_template_copy = re.sub(r'_SWITCH_TO_VERSION_PLACEHOLDER', switch_method_name, getter_template_copy)
+            getter_template_copy = re.sub(r'_MVO_RECORD_ACCESS_PLACEHOLDER', ACCESS_RECORD_METHOD_NAME, getter_template_copy)
             template_ast_getter = ast.parse(getter_template_copy).body[0]
 
             setter_template_copy = re.sub(r'\[ATTR\]', attr, setter_template_string)
             setter_template_copy = re.sub(r'\[VERSION\]', str(version), setter_template_copy)
             setter_template_copy = re.sub(r'_SWITCH_TO_VERSION_PLACEHOLDER', switch_method_name, setter_template_copy)
+            setter_template_copy = re.sub(r'_MVO_RECORD_ACCESS_PLACEHOLDER', ACCESS_RECORD_METHOD_NAME, setter_template_copy)
             template_ast_setter = ast.parse(setter_template_copy).body[0]
 
             out.append(template_ast_getter)

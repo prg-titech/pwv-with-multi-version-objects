@@ -5,7 +5,7 @@ from ..symbol_table.symbol_table import SymbolTable
 from ..symbol_table.method_info import MethodInfo
 
 from ..util.ast_util import *
-from ..util.builder_util import _create_slow_path_dispatcher
+from ..util.builder_util import _create_observed_method_return, _create_slow_path_dispatcher
 from ..util.constants import (
     DEFAULT_VERSION_SELECTION_STRATEGY,
     INITIALIZE_METHOD_NAME,
@@ -131,7 +131,7 @@ def _generate_consistent_signature_stub(
         args=call_args,
         keywords=call_keywords
     )
-    fast_path_body = [ast.Return(value=fast_path_call)]
+    fast_path_body = _create_observed_method_return("method_call", method_name, fast_path_call)
     
     # 3. slow path の AST（except ブロック）を生成
     # このメソッドを持つ全バージョンを取得
@@ -152,9 +152,7 @@ def _generate_consistent_signature_stub(
             args=[ast.Constant(value=next_version_to_try)],
             keywords=[]
         )),
-        
-        # b. return self._xxx_current_state.method_name(...)
-        ast.Return(value=fast_path_call)
+        *_create_observed_method_return("method_call", method_name, copy.deepcopy(fast_path_call)),
     ]
 
     except_handler = ast.ExceptHandler(type=ast.Name(id='AttributeError', ctx=ast.Load()), name=None, body=slow_path_body)
@@ -216,17 +214,21 @@ def _generate_inconsistent_signature_stub(
         stub_method.body.append(ast_if)
 
     # 2. fast path の AST（try ブロック）を生成
-    fast_path_body = [ast.Return(value=ast.Call(
-        func=ast.Attribute(
-            value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(base_name), ctx=ast.Load()),
-            attr=method_name, ctx=ast.Load()
-        ),
-        args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],
-        keywords=[
-            ast.keyword(arg=WRAPPER_SELF_ARG_NAME, value=ast.Name(id='self', ctx=ast.Load())),
-            ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))
-        ]
-    ))]
+    fast_path_body = _create_observed_method_return(
+        "method_call",
+        method_name,
+        ast.Call(
+            func=ast.Attribute(
+                value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=get_current_state_field_name(base_name), ctx=ast.Load()),
+                attr=method_name, ctx=ast.Load()
+            ),
+            args=[ast.Starred(value=ast.Name(id='args', ctx=ast.Load()), ctx=ast.Load())],
+            keywords=[
+                ast.keyword(arg=WRAPPER_SELF_ARG_NAME, value=ast.Name(id='self', ctx=ast.Load())),
+                ast.keyword(arg=None, value=ast.Name(id='kwargs', ctx=ast.Load()))
+            ]
+        )
+    )
 
     # 3. slow path の AST（except ブロック）を生成
     slow_path_body = _create_slow_path_dispatcher(base_name, method_name, overloads)

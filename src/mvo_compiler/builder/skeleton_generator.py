@@ -6,7 +6,7 @@ from ..util.ast_util import *
 from ..util.template_util import TemplateRenamer
 from ..util.template_util import load_template_ast
 from ..util import logger
-from ..util.constants import SWITCH_COUNT_ATTR_NAME, WRAPPER_SELF_ARG_NAME
+from ..util.constants import ACCESS_EVENT_EMITTER_NAME, ACCESS_RECORD_METHOD_NAME, SWITCH_COUNT_ATTR_NAME, WRAPPER_SELF_ARG_NAME
 
 _SWITCH_TO_VERSION_TEMPLATE = "switch_to_version_template.py"
 
@@ -23,6 +23,7 @@ def build_skeleton(
     target_class = _build_wrapper_class(class_info)
     impl_classes = _build_impl_classes(class_info, class_name)
     singleton_stmt = _build_singleton_instance_list_stmt(class_info)
+    record_access_method = _build_access_record_method(class_name, class_info)
     switch_method = _create_switch_to_version_method(class_name, sync_asts)
 
     # 暫定: _switch_count 属性を注入
@@ -30,7 +31,7 @@ def build_skeleton(
         targets=[ast.Name(id=SWITCH_COUNT_ATTR_NAME, ctx=ast.Store())],
         value=ast.Constant(value=0)
     )
-    body_items = [switch_count_attr, *impl_classes, singleton_stmt]
+    body_items = [switch_count_attr, *impl_classes, singleton_stmt, record_access_method]
     if switch_method:
         body_items.append(switch_method)
     target_class.body = body_items
@@ -145,6 +146,42 @@ def _build_singleton_instance_list_stmt(class_info) -> ast.Assign:
         value=ast.List(elts=impl_class_calls, ctx=ast.Load())
     )
     return singleton_list_stmt
+
+def _build_access_record_method(class_name: str, class_info) -> ast.FunctionDef:
+    latest_version = max(int(version) for version in class_info.get_all_versions())
+    current_state_attr = get_current_state_field_name(class_name)
+
+    return ast.FunctionDef(
+        name=ACCESS_RECORD_METHOD_NAME,
+        args=ast.arguments(
+            posonlyargs=[],
+            args=[ast.arg(arg='self'), ast.arg(arg='access_kind'), ast.arg(arg='member_name')],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=[
+            ast.Expr(value=ast.Call(
+                func=ast.Name(id=ACCESS_EVENT_EMITTER_NAME, ctx=ast.Load()),
+                args=[],
+                keywords=[
+                    ast.keyword(arg='class_name', value=ast.Constant(value=class_name)),
+                    ast.keyword(arg='access_kind', value=ast.Name(id='access_kind', ctx=ast.Load())),
+                    ast.keyword(arg='member_name', value=ast.Name(id='member_name', ctx=ast.Load())),
+                    ast.keyword(
+                        arg='resolved_version',
+                        value=ast.Attribute(
+                            value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=current_state_attr, ctx=ast.Load()),
+                            attr='_version_number',
+                            ctx=ast.Load(),
+                        ),
+                    ),
+                    ast.keyword(arg='latest_version', value=ast.Constant(value=latest_version)),
+                ],
+            ))
+        ],
+        decorator_list=[],
+    )
 
 def _create_switch_to_version_method(
     class_name: str,
