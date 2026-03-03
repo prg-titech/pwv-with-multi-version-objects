@@ -38,9 +38,11 @@ def compile_project(
     )
 
     # --- 3. 出力ディレクトリへ書き出し ---
-    for rel_path, transformed_ast in transformed_files:
-        if transformed_ast:
-            write_single_file(output_dir, rel_path, transformed_ast)
+    for rel_path, transformed_ast, source_code in transformed_files:
+        if transformed_ast is not None:
+            write_single_file(output_dir, rel_path, tree=transformed_ast)
+        elif source_code is not None:
+            write_single_file(output_dir, rel_path, source_code=source_code)
         else:
             logger.error_log("Something went wrong during transformation; no output generated.")
 
@@ -49,7 +51,7 @@ def transform_project(
     *,
     version_selection_strategy: str = DEFAULT_VERSION_SELECTION_STRATEGY,
     project_structure: dict | None = None,
-) -> list[tuple[Path, ast.AST | None]]:
+) -> list[tuple[Path, ast.AST | None, str | None]]:
     """
     入力ディレクトリ内のversionedクラスのみを変換し、ASTを返す。
     """
@@ -60,11 +62,11 @@ def transform_project(
     )
     logger.success_log(f"Completed parsing and classifying files in {input_dir}.")
 
-    out: list[tuple[Path, ast.AST]] = []
-    for rel_path, tree in project_structure[PROJECT_NORMAL_FILES_KEY]:
+    out: list[tuple[Path, ast.AST | None, str | None]] = []
+    for rel_path, tree, source_code in project_structure[PROJECT_NORMAL_FILES_KEY]:
         if not contains_versioned_classes(tree):
             logger.debug_log(f"Skipping transform (no versioned classes): {rel_path}")
-            out.append((rel_path, tree))
+            out.append((rel_path, None, source_code))
             continue
 
         try:
@@ -78,7 +80,7 @@ def transform_project(
             logger.error_log(f"Error transforming {rel_path}: {e}")
             transformed_ast = None
 
-        out.append((rel_path, transformed_ast))
+        out.append((rel_path, transformed_ast, None))
 
     return out
 
@@ -104,10 +106,23 @@ def execute_generated(entry_file: str, dir: Path) -> str:
         logger.error_log("Execution failed:")
         raise RuntimeError(f"Execution failed for {entry_file_path}: {e.stderr}")
 
-def write_single_file(output_dir: Path, original_rel_path: Path, tree: ast.AST) -> None:
-    """変換後ASTを指定ディレクトリに1ファイル書き出す。"""
-    ast.fix_missing_locations(tree)
-    generated_code = ast.unparse(tree)
+def write_single_file(
+    output_dir: Path,
+    original_rel_path: Path,
+    *,
+    tree: ast.AST | None = None,
+    source_code: str | None = None,
+) -> None:
+    """変換後ASTまたは元ソースを指定ディレクトリに1ファイル書き出す。"""
+    if tree is None and source_code is None:
+        raise ValueError("Either tree or source_code must be provided.")
+    if tree is not None and source_code is not None:
+        raise ValueError("Only one of tree or source_code can be provided.")
+    if tree is not None:
+        ast.fix_missing_locations(tree)
+        generated_code = ast.unparse(tree)
+    else:
+        generated_code = source_code
 
     output_path = output_dir / original_rel_path
     output_path.parent.mkdir(parents=True, exist_ok=True)

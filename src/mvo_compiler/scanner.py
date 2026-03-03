@@ -40,7 +40,7 @@ def create_project_structure(input_dir: Path) -> Dict:
             with open(source_file, 'r', encoding='utf-8') as f:
                 source_code = f.read()
             relative_path = source_file.relative_to(input_dir)
-            project_structure[PROJECT_NORMAL_FILES_KEY].append((relative_path, ast.parse(source_code)))
+            project_structure[PROJECT_NORMAL_FILES_KEY].append((relative_path, ast.parse(source_code), source_code))
         except Exception as e:
             logger.error_log(f"Failed to parse {source_file}: {e}")
 

@@ -1,5 +1,6 @@
 import atexit
 import json
+import linecache
 import os
 import sys
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ def emit_access_event(
         "callsite_file": callsite["file"],
         "callsite_line": callsite["line"],
         "callsite_function": callsite["function"],
+        "callsite_source_line": callsite["source_line"],
     }
     json.dump(payload, log_file, ensure_ascii=True)
     log_file.write("\n")
@@ -63,11 +65,13 @@ def _get_callsite() -> dict[str, object]:
     try:
         frame = sys._getframe(_CALLSITE_FRAME_DEPTH)
     except ValueError:
-        return {"file": "<unknown>", "line": 0, "function": "<unknown>"}
+        return {"file": "<unknown>", "line": 0, "function": "<unknown>", "source_line": ""}
 
     code = frame.f_code
+    source_line = linecache.getline(code.co_filename, frame.f_lineno).strip()
     return {
         "file": code.co_filename,
         "line": frame.f_lineno,
         "function": code.co_name,
+        "source_line": source_line,
     }

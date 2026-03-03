@@ -1,12 +1,15 @@
 import os
 from importlib import import_module
+from importlib.util import find_spec
 
 STAGE_ENV_VAR = "MVO_TETRIS_STAGE"
+MODE_ENV_VAR = "MVO_TETRIS_MODE"
 DEFAULT_STAGE = "original"
+DEFAULT_MODE = "demo"
 
 
-def run_demo() -> None:
-    _run(playable=False)
+def run() -> None:
+    _run(playable=_is_playable_mode())
 
 
 def run_playable() -> None:
@@ -14,14 +17,14 @@ def run_playable() -> None:
 
 
 def _run(*, playable: bool) -> None:
-    stage = _get_stage()
-    engine_module = import_module(f"tetris.{stage}.game.engine")
-    event_bus_module = import_module(f"tetris.{stage}.game.event_bus")
-    audio_module = import_module(f"tetris.{stage}.game.audio")
-    hud_module = import_module(f"tetris.{stage}.game.hud")
-    renderer_module = import_module(f"tetris.{stage}.game.renderer")
-    score_module = import_module(f"tetris.{stage}.game.score")
-    stats_module = import_module(f"tetris.{stage}.game.stats")
+    stage_package = _resolve_stage_package()
+    engine_module = import_module(f"{stage_package}.game.engine")
+    event_bus_module = import_module(f"{stage_package}.game.event_bus")
+    audio_module = import_module(f"{stage_package}.game.audio")
+    hud_module = import_module(f"{stage_package}.game.hud")
+    renderer_module = import_module(f"{stage_package}.game.renderer")
+    score_module = import_module(f"{stage_package}.game.score")
+    stats_module = import_module(f"{stage_package}.game.stats")
 
     bus = event_bus_module.EventBus()
     systems = [
@@ -59,3 +62,22 @@ def _get_stage() -> str:
     if stage.startswith("updates/"):
         return stage.replace("/", ".")
     raise ValueError(f"Unsupported Tetris stage: {stage}")
+
+
+def _resolve_stage_package() -> str:
+    stage = _get_stage()
+    candidates = [f"tetris.{stage}"]
+    if stage.startswith("updates."):
+        candidates.append(f"tetris.{stage}.original")
+
+    for candidate in candidates:
+        if find_spec(f"{candidate}.game") is not None:
+            return candidate
+
+    raise ModuleNotFoundError(
+        f"Unable to resolve Tetris stage '{stage}'. Tried: {', '.join(candidates)}"
+    )
+
+
+def _is_playable_mode() -> bool:
+    return os.environ.get(MODE_ENV_VAR, DEFAULT_MODE).strip().lower() == "playable"

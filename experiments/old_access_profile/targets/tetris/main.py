@@ -1,8 +1,8 @@
-from tetris.runner import run_demo
+from tetris.runner import run
 
 
 def main():
-    run_demo()
+    run()
 
 if __name__ == "__main__":
     main()

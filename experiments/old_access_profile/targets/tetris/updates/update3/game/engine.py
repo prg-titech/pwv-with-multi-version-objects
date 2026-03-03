@@ -69,7 +69,13 @@ class TetrisEngine:
 
     def _run_turn(self, piece_name, left):
         self.turn += 1
-        self.bus.emit("turn_started", {
+        # self.bus.emit("turn_started", {
+        #     "turn": self.turn,
+        #     "piece": piece_name,
+        #     "left": left,
+        #     "total_lines": self.total_lines,
+        # })
+        self.bus.publish("turn_started", {
             "turn": self.turn,
             "piece": piece_name,
             "left": left,
@@ -78,7 +84,14 @@ class TetrisEngine:
 
         top = self.board.drop_piece(piece_name, left)
         self.locked_pieces += 1
-        self.bus.emit("piece_locked", {
+        # self.bus.emit("piece_locked", {
+        #     "turn": self.turn,
+        #     "piece": piece_name,
+        #     "left": left,
+        #     "top": top,
+        #     "board_lines": self.board.snapshot(),
+        # })
+        self.bus.publish("piece_locked", {
             "turn": self.turn,
             "piece": piece_name,
             "left": left,
