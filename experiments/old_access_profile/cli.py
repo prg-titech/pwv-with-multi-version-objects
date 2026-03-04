@@ -155,11 +155,11 @@ def format_summary(summary: dict, *, top_n: int) -> str:
     ]
     lines.append(f"hotspots_top_{top_n}:")
     if not summary["hotspots"]:
-        lines.append("  (none)")
+        lines.append(" (none)")
     else:
         for hotspot in summary["hotspots"]:
             lines.append(
-                f"  {hotspot['old_access_count']:>5}  {hotspot['callsite_file']}:{hotspot['callsite_line']}  {hotspot['access']}"
+                f" {hotspot['old_access_count']:>3}  {hotspot['callsite_file']}:{hotspot['callsite_line']}  {hotspot['access']}"
             )
     return "\n".join(lines)
 
@@ -218,13 +218,7 @@ def _extend_pythonpath(output_dir: Path, existing: str | None) -> str:
     return os.pathsep.join(entries)
 
 def _display_path(file_name: str, base_dir: Path) -> str:
-    file_path = Path(file_name).resolve()
-    for candidate in (base_dir.resolve(), PROJECT_ROOT):
-        try:
-            return str(file_path.relative_to(candidate))
-        except ValueError:
-            continue
-    return str(file_path)
+    return Path(file_name).name
 
 def _parse_runtime_env(items: list[str]) -> dict[str, str]:
     env = {}
