@@ -1,0 +1,4 @@
+mapped-field-v1
+mapped-field-v2
+mapped-method-v1:x
+mapped-method-v2:x
