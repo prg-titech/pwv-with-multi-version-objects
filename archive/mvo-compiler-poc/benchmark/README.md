@@ -1,4 +1,4 @@
-# MVO Benchmark Suite
+# MVO ベンチマークスイート
 
 ## 概要
 
